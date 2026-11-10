@@ -56,3 +56,4 @@ export default function handler(req, res) {
   // GET
   return res.status(200).json(memoryBookings);
 }
+
