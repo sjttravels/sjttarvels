@@ -337,7 +337,8 @@ export const CustomerWebsite: React.FC = () => {
       try {
         const res = await fetch(`${API_BASE}/api/bookings/track/${code}`);
         if (!res.ok) return;
-        const data = await res.json();
+        const raw = await res.json();
+        const data = raw.booking || raw;
         if (
           data.assigned_driver_id !== confirmedBooking.assigned_driver_id ||
           data.status !== confirmedBooking.status ||

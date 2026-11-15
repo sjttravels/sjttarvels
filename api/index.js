@@ -555,7 +555,8 @@ export default async function handler(req, res) {
       if (q.rows.length === 0) {
         return res.status(404).json({ error: 'Booking not found' });
       }
-      return res.status(200).json({ success: true, booking: formatBooking(q.rows[0]) });
+      const b = formatBooking(q.rows[0]);
+      return res.status(200).json({ success: true, booking: b, ...b });
     }
 
     // 5. Driver Available Bookings: GET /api/driver/available-bookings
@@ -729,7 +730,8 @@ export default async function handler(req, res) {
         const body = await parseBody(req);
         const q = await db.query('SELECT * FROM bookings WHERE id::text = $1 OR booking_code = $1 LIMIT 1', [id]);
         if (q.rows.length === 0) return res.status(404).json({ error: 'Booking not found' });
-        return res.status(200).json({ success: true, booking: formatBooking(q.rows[0]) });
+        const b = formatBooking(q.rows[0]);
+      return res.status(200).json({ success: true, booking: b, ...b });
       }
     }
 

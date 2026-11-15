@@ -293,7 +293,8 @@ export const CustomerMobileApp: React.FC = () => {
           const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
           const res = await fetch(`${apiBase}/api/bookings/track/${activeBookingId}`);
           if (res.ok) {
-            const data = await res.json();
+            const raw = await res.json();
+            const data = raw.booking || raw;
             if (data.assigned_driver_id) {
               setActiveBookingData(data);
               setCurrentSlide(10);
@@ -316,7 +317,8 @@ export const CustomerMobileApp: React.FC = () => {
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       fetch(`${apiBase}/api/bookings/track/${encodeURIComponent(savedId)}`)
         .then(r => r.json())
-        .then(d => {
+        .then(raw => {
+          const d = raw?.booking || raw;
           if (d && d.booking_code && !d.error && d.status !== 'CANCELLED') {
             setActiveBookingId(d.booking_code);
             setActiveBookingData(d);
