@@ -572,8 +572,13 @@ export default async function handler(req, res) {
       (pathname.startsWith('/api/bookings/') && pathname.endsWith('/accept-ride') && method === 'POST');
 
     if (isDriverAccept) {
-      let bookingKey = pathname.replace('/api/driver/available-bookings/', '').replace('/accept', '');
-      bookingKey = bookingKey.replace('/api/bookings/', '').replace('/accept-ride', '');
+      let bookingKey = '';
+      if (pathname.startsWith('/api/driver/available-bookings/')) {
+        bookingKey = pathname.replace('/api/driver/available-bookings/', '').replace(/\/accept\/?$/, '');
+      } else {
+        bookingKey = pathname.replace('/api/bookings/', '').replace(/\/accept-ride\/?$/, '');
+      }
+      bookingKey = decodeURIComponent(bookingKey.trim());
       const body = await parseBody(req);
       const driverName = body.driver_name || body.driverName || 'Ramesh Kumar';
       const driverPhone = body.driver_phone || body.driverPhone || '+91 97259 85286';
