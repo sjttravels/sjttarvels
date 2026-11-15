@@ -1,22 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Vehicle, TripType, Booking } from '../types';
-import { 
-  Car, 
-  MapPin, 
-  Calendar, 
-  Users, 
-  Search, 
-  ShieldCheck, 
-  Clock, 
-  PhoneCall, 
-  CheckCircle2, 
-  Sparkles, 
-  ArrowRight, 
-  Compass, 
-  Plane, 
-  Building, 
-  HeartHandshake, 
+import {
+  Car,
+  MapPin,
+  Calendar,
+  Users,
+  Search,
+  ShieldCheck,
+  Clock,
+  PhoneCall,
+  CheckCircle2,
+  Sparkles,
+  ArrowRight,
+  Compass,
+  Plane,
+  Building,
+  HeartHandshake,
   CreditCard,
   MessageCircle,
   Database,
@@ -46,6 +46,7 @@ import {
 import confetti from 'canvas-confetti';
 import { LocationSuggestionField } from './LocationSuggestionField';
 import { FareQuote, getFareQuotes } from '../services/fareQuotes';
+import { calculateRouteSync, isAirportLocation, isOutstationDestination } from '../services/distanceService';
 
 const API_BASE = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ? `${window.location.protocol}//${window.location.hostname}:5000`
@@ -65,9 +66,9 @@ const addDaysToDateInput = (value: string, days: number) => {
 };
 
 export const CustomerWebsite: React.FC = () => {
-  const { 
+  const {
     vehicles,
-    createBooking, 
+    createBooking,
     refreshData,
     openClientMailModal,
     setActiveView,
@@ -102,6 +103,16 @@ export const CustomerWebsite: React.FC = () => {
   const [trackingResult, setTrackingResult] = useState<any | null>(null);
   const [trackingLoading, setTrackingLoading] = useState(false);
   const [trackingError, setTrackingError] = useState('');
+
+  // Ola-style Intercept Switch Modal State (Book Ola/SJT Outstation Popup)
+  const [switchPromptModal, setSwitchPromptModal] = useState<{
+    isOpen: boolean;
+    type: 'OUTSTATION' | 'AIRPORT' | 'CITY';
+    detectedLocation: string;
+    detectedDistanceKm?: number;
+    detectedDurationText?: string;
+    targetTripType: TripType;
+  } | null>(null);
 
   // Selected Vehicle & Quotes
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
@@ -265,7 +276,7 @@ export const CustomerWebsite: React.FC = () => {
             setConfirmedBooking(data);
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, []);
 
@@ -367,10 +378,56 @@ export const CustomerWebsite: React.FC = () => {
       }
       return;
     }
+
+    const trimmedPickup = pickup.trim();
+    const trimmedDest = destination.trim();
+
+    // Ola-Style Intercept Modal Triggers (Matches book.olacabs.com behavior)
+    if (tripType === 'POINT_TO_POINT') {
+      if (isAirportLocation(trimmedDest)) {
+        const route = calculateRouteSync(trimmedPickup, trimmedDest, 'AIRPORT');
+        setSwitchPromptModal({
+          isOpen: true,
+          type: 'AIRPORT',
+          targetTripType: 'AIRPORT',
+          detectedLocation: trimmedDest,
+          detectedDistanceKm: route.distanceKm,
+          detectedDurationText: route.durationText
+        });
+        return;
+      }
+
+      if (isOutstationDestination(trimmedDest, trimmedPickup)) {
+        const route = calculateRouteSync(trimmedPickup, trimmedDest, 'OUTSTATION');
+        setSwitchPromptModal({
+          isOpen: true,
+          type: 'OUTSTATION',
+          targetTripType: 'OUTSTATION',
+          detectedLocation: trimmedDest,
+          detectedDistanceKm: route.distanceKm,
+          detectedDurationText: route.durationText
+        });
+        return;
+      }
+    } else if (tripType === 'OUTSTATION' || tripType === 'ROUND_TRIP') {
+      const route = calculateRouteSync(trimmedPickup, trimmedDest, tripType);
+      if (route.distanceKm <= 35 && !isOutstationDestination(trimmedDest) && !isAirportLocation(trimmedDest)) {
+        setSwitchPromptModal({
+          isOpen: true,
+          type: 'CITY',
+          targetTripType: 'POINT_TO_POINT',
+          detectedLocation: trimmedDest,
+          detectedDistanceKm: route.distanceKm,
+          detectedDurationText: route.durationText
+        });
+        return;
+      }
+    }
+
     setSearchMessage('');
     setSelectedCategory('RELATED');
     setConfirmedBooking(null);
-    fetchQuotes(tripType, pickup.trim(), destination.trim(), passengers);
+    fetchQuotes(tripType, trimmedPickup, trimmedDest, passengers);
     document.getElementById('booking-results-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
@@ -471,7 +528,7 @@ export const CustomerWebsite: React.FC = () => {
     const isErtiga = /ertiga/i.test(veh.name) || seats === 6;
     const isHycross = /hycross/i.test(veh.name);
     const isInnova = /innova/i.test(veh.name) || seats === 7;
-    
+
     // Market per-km rates: 4-seater Sedan: ₹12/km, 6-seater Ertiga: ₹15/km, 7-seater Innova: ₹18/km, Hycross: ₹22/km
     const cityPerKmRate = isSedan ? 12 : isErtiga ? 15 : isHycross ? 22 : isInnova ? 18 : 24;
     const defaultBata = isSedan ? 400 : isErtiga ? 450 : isHycross ? 550 : isInnova ? 500 : 600;
@@ -550,7 +607,7 @@ export const CustomerWebsite: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-800 font-sans">
-      
+
 
       {/* ======================================================== */}
       {/* 1. SINGLE CLEAN LUXURY HEADER (UNIFIED & UNCLUTTERED) */}
@@ -577,37 +634,37 @@ export const CustomerWebsite: React.FC = () => {
             {/* Nav Menu Links (Desktop) */}
             <nav className="hidden xl:flex items-center gap-4 2xl:gap-5 text-xs font-bold text-slate-700 whitespace-nowrap">
               <a href="#booking-form" className="text-[#ED1735] hover:text-[#ED1735] transition-colors whitespace-nowrap">Home</a>
-              <button 
-                type="button" 
-                onClick={() => { setTripType('POINT_TO_POINT'); if (pickup.trim() && destination.trim()) fetchQuotes('POINT_TO_POINT'); }} 
+              <button
+                type="button"
+                onClick={() => { setTripType('POINT_TO_POINT'); if (pickup.trim() && destination.trim()) fetchQuotes('POINT_TO_POINT'); }}
                 className={`transition-colors cursor-pointer font-black whitespace-nowrap ${tripType === 'POINT_TO_POINT' ? 'text-[#ED1735]' : 'hover:text-[#ED1735] text-blue-600'}`}
               >
                 City Ride
               </button>
-              <button 
-                type="button" 
-                onClick={() => { setTripType('LOCAL'); if (pickup.trim() && destination.trim()) fetchQuotes('LOCAL'); }} 
+              <button
+                type="button"
+                onClick={() => { setTripType('LOCAL'); if (pickup.trim() && destination.trim()) fetchQuotes('LOCAL'); }}
                 className={`transition-colors cursor-pointer whitespace-nowrap ${tripType === 'LOCAL' ? 'text-[#ED1735]' : 'hover:text-[#ED1735]'}`}
               >
                 Local (8hr/80km)
               </button>
-              <button 
-                type="button" 
-                onClick={() => { setTripType('AIRPORT'); if (pickup.trim() && destination.trim()) fetchQuotes('AIRPORT'); }} 
+              <button
+                type="button"
+                onClick={() => { setTripType('AIRPORT'); if (pickup.trim() && destination.trim()) fetchQuotes('AIRPORT'); }}
                 className={`transition-colors cursor-pointer whitespace-nowrap ${tripType === 'AIRPORT' ? 'text-[#ED1735]' : 'hover:text-[#ED1735]'}`}
               >
                 Airport Transfers
               </button>
-              <button 
-                type="button" 
-                onClick={() => { setTripType('OUTSTATION'); if (pickup.trim() && destination.trim()) fetchQuotes('OUTSTATION'); }} 
+              <button
+                type="button"
+                onClick={() => { setTripType('OUTSTATION'); if (pickup.trim() && destination.trim()) fetchQuotes('OUTSTATION'); }}
                 className={`transition-colors cursor-pointer whitespace-nowrap ${tripType === 'OUTSTATION' ? 'text-[#ED1735]' : 'hover:text-[#ED1735]'}`}
               >
                 Outstation
               </button>
-              <button 
-                type="button" 
-                onClick={() => { setTripType('ROUND_TRIP'); if (pickup.trim() && destination.trim()) fetchQuotes('ROUND_TRIP'); }} 
+              <button
+                type="button"
+                onClick={() => { setTripType('ROUND_TRIP'); if (pickup.trim() && destination.trim()) fetchQuotes('ROUND_TRIP'); }}
                 className={`transition-colors cursor-pointer whitespace-nowrap ${tripType === 'ROUND_TRIP' ? 'text-[#ED1735]' : 'hover:text-[#ED1735]'}`}
               >
                 Round Trip
@@ -622,8 +679,8 @@ export const CustomerWebsite: React.FC = () => {
             {/* Actions: Dispatch Hotline (Single-Line Button) & Book a Cab CTA */}
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               {/* Single Button Type Central Dispatch Hotline (Never Wraps) */}
-              <a 
-                href="tel:+919900975920" 
+              <a
+                href="tel:+919900975920"
                 className="inline-flex items-center gap-1.5 sm:gap-2 text-xs font-black text-slate-800 bg-slate-100 hover:bg-slate-200 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-slate-200 shadow-xs transition-all font-mono whitespace-nowrap shrink-0 cursor-pointer"
                 title="Call 24x7 SJT Dispatch Hotline: +91 99009 75920"
               >
@@ -656,58 +713,58 @@ export const CustomerWebsite: React.FC = () => {
         {mobileMenuOpen && (
           <div className="xl:hidden bg-white border-t border-slate-200 px-4 py-4 space-y-2.5 shadow-xl animate-fade-in">
             <div className="grid grid-cols-2 gap-2 text-xs font-bold text-slate-700">
-              <a 
-                href="#booking-form" 
+              <a
+                href="#booking-form"
                 onClick={() => setMobileMenuOpen(false)}
                 className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-[#ED1735] flex items-center gap-1.5"
               >
                 🏠 Home
               </a>
-              <button 
-                type="button" 
-                onClick={() => { setTripType('POINT_TO_POINT'); setMobileMenuOpen(false); if (pickup.trim() && destination.trim()) fetchQuotes('POINT_TO_POINT'); }} 
+              <button
+                type="button"
+                onClick={() => { setTripType('POINT_TO_POINT'); setMobileMenuOpen(false); if (pickup.trim() && destination.trim()) fetchQuotes('POINT_TO_POINT'); }}
                 className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-left font-black text-blue-600 flex items-center gap-1.5 cursor-pointer"
               >
                 ⚡ City Ride
               </button>
-              <button 
-                type="button" 
-                onClick={() => { setTripType('LOCAL'); setMobileMenuOpen(false); if (pickup.trim() && destination.trim()) fetchQuotes('LOCAL'); }} 
+              <button
+                type="button"
+                onClick={() => { setTripType('LOCAL'); setMobileMenuOpen(false); if (pickup.trim() && destination.trim()) fetchQuotes('LOCAL'); }}
                 className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-left cursor-pointer"
               >
                 ⏱️ Local (8hr/80km)
               </button>
-              <button 
-                type="button" 
-                onClick={() => { setTripType('AIRPORT'); setMobileMenuOpen(false); if (pickup.trim() && destination.trim()) fetchQuotes('AIRPORT'); }} 
+              <button
+                type="button"
+                onClick={() => { setTripType('AIRPORT'); setMobileMenuOpen(false); if (pickup.trim() && destination.trim()) fetchQuotes('AIRPORT'); }}
                 className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-left cursor-pointer"
               >
                 ✈️ Airport Transfers
               </button>
-              <button 
-                type="button" 
-                onClick={() => { setTripType('OUTSTATION'); setMobileMenuOpen(false); if (pickup.trim() && destination.trim()) fetchQuotes('OUTSTATION'); }} 
+              <button
+                type="button"
+                onClick={() => { setTripType('OUTSTATION'); setMobileMenuOpen(false); if (pickup.trim() && destination.trim()) fetchQuotes('OUTSTATION'); }}
                 className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-left cursor-pointer"
               >
                 🛣️ Outstation
               </button>
-              <button 
-                type="button" 
-                onClick={() => { setTripType('ROUND_TRIP'); setMobileMenuOpen(false); if (pickup.trim() && destination.trim()) fetchQuotes('ROUND_TRIP'); }} 
+              <button
+                type="button"
+                onClick={() => { setTripType('ROUND_TRIP'); setMobileMenuOpen(false); if (pickup.trim() && destination.trim()) fetchQuotes('ROUND_TRIP'); }}
                 className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-left cursor-pointer"
               >
                 🔄 Round Trip
               </button>
-              <a 
-                href="#fleet-section" 
+              <a
+                href="#fleet-section"
                 onClick={() => setMobileMenuOpen(false)}
                 className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100"
               >
                 🚗 Fleet Matrix
               </a>
-              <button 
-                type="button" 
-                onClick={() => { setTrackingModalOpen(true); setMobileMenuOpen(false); }} 
+              <button
+                type="button"
+                onClick={() => { setTrackingModalOpen(true); setMobileMenuOpen(false); }}
                 className="p-2.5 rounded-xl bg-blue-50 text-blue-700 font-extrabold flex items-center gap-1.5 cursor-pointer text-left"
               >
                 <Navigation className="w-3.5 h-3.5 text-blue-600" /> Track Ride
@@ -731,9 +788,9 @@ export const CustomerWebsite: React.FC = () => {
       {/* ======================================================== */}
       <section className="relative bg-gradient-to-br from-[#071B49] via-[#0B2568] to-[#174E9A] text-white py-12 overflow-hidden">
         <div className="absolute inset-0 opacity-15 mix-blend-overlay pointer-events-none">
-          <img 
-            src="/sjt_banner.jpg" 
-            alt="SJT Travels Karnataka Fleet" 
+          <img
+            src="/sjt_banner.jpg"
+            alt="SJT Travels Karnataka Fleet"
             className="w-full h-full object-cover"
           />
         </div>
@@ -771,11 +828,10 @@ export const CustomerWebsite: React.FC = () => {
                     setTripType(nextType);
                     fetchQuotes(nextType);
                   }}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    tripType === t.id
-                      ? 'bg-[#ED1735] text-white shadow-md shadow-red-500/30'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${tripType === t.id
+                    ? 'bg-[#ED1735] text-white shadow-md shadow-red-500/30'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
                 >
                   {t.label}
                 </button>
@@ -790,9 +846,9 @@ export const CustomerWebsite: React.FC = () => {
                     <MapPin className="w-3.5 h-3.5 text-[#ED1735] shrink-0" />
                     <span>Pickup Location</span>
                   </label>
-                  <LocationSuggestionField 
-                    id="customer-pickup-location" 
-                    value={pickup} 
+                  <LocationSuggestionField
+                    id="customer-pickup-location"
+                    value={pickup}
                     onChange={val => {
                       setPickup(val);
                       if (pickupGoogleMapsUrl && !val.includes('📍 Live GPS')) {
@@ -801,11 +857,11 @@ export const CustomerWebsite: React.FC = () => {
                       if (destination.trim()) {
                         fetchQuotes(tripType, val, destination, passengers);
                       }
-                    }} 
+                    }}
                     onUseLiveLocation={handleDetectLiveLocation}
                     isLocating={liveLocationLoading}
-                    placeholder="Enter pickup locality or airport in Karnataka" 
-                    required 
+                    placeholder="Enter pickup locality or airport in Karnataka"
+                    required
                   />
                   {pickupGoogleMapsUrl && (
                     <div className="mt-1 flex items-center justify-between text-[10px] text-emerald-800 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">
@@ -830,17 +886,43 @@ export const CustomerWebsite: React.FC = () => {
                     <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                     <span>Destination</span>
                   </label>
-                  <LocationSuggestionField 
-                    id="customer-destination-location" 
-                    value={destination} 
+                  <LocationSuggestionField
+                    id="customer-destination-location"
+                    value={destination}
                     onChange={val => {
                       setDestination(val);
                       if (pickup.trim()) {
+                        if (tripType === 'POINT_TO_POINT') {
+                          if (isAirportLocation(val)) {
+                            const route = calculateRouteSync(pickup.trim(), val, 'AIRPORT');
+                            setSwitchPromptModal({
+                              isOpen: true,
+                              type: 'AIRPORT',
+                              targetTripType: 'AIRPORT',
+                              detectedLocation: val,
+                              detectedDistanceKm: route.distanceKm,
+                              detectedDurationText: route.durationText
+                            });
+                            return;
+                          }
+                          if (isOutstationDestination(val, pickup.trim())) {
+                            const route = calculateRouteSync(pickup.trim(), val, 'OUTSTATION');
+                            setSwitchPromptModal({
+                              isOpen: true,
+                              type: 'OUTSTATION',
+                              targetTripType: 'OUTSTATION',
+                              detectedLocation: val,
+                              detectedDistanceKm: route.distanceKm,
+                              detectedDurationText: route.durationText
+                            });
+                            return;
+                          }
+                        }
                         fetchQuotes(tripType, pickup, val, passengers);
                       }
-                    }} 
-                    placeholder="Enter destination city or landmark" 
-                    required 
+                    }}
+                    placeholder="Enter destination city or landmark"
+                    required
                   />
                 </div>
 
@@ -964,7 +1046,36 @@ export const CustomerWebsite: React.FC = () => {
                   onClick={() => {
                     const dest = `${d}, Karnataka`;
                     setDestination(dest);
-                    fetchQuotes(tripType, pickup, dest);
+                    const currentPick = pickup.trim() || 'Uttarahalli, Bengaluru';
+                    if (!pickup.trim()) setPickup(currentPick);
+
+                    if (tripType === 'POINT_TO_POINT') {
+                      if (isAirportLocation(dest)) {
+                        const route = calculateRouteSync(currentPick, dest, 'AIRPORT');
+                        setSwitchPromptModal({
+                          isOpen: true,
+                          type: 'AIRPORT',
+                          targetTripType: 'AIRPORT',
+                          detectedLocation: dest,
+                          detectedDistanceKm: route.distanceKm,
+                          detectedDurationText: route.durationText
+                        });
+                        return;
+                      }
+                      if (isOutstationDestination(dest, currentPick)) {
+                        const route = calculateRouteSync(currentPick, dest, 'OUTSTATION');
+                        setSwitchPromptModal({
+                          isOpen: true,
+                          type: 'OUTSTATION',
+                          targetTripType: 'OUTSTATION',
+                          detectedLocation: dest,
+                          detectedDistanceKm: route.distanceKm,
+                          detectedDurationText: route.durationText
+                        });
+                        return;
+                      }
+                    }
+                    fetchQuotes(tripType, currentPick, dest, passengers);
                   }}
                   className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 text-[11px] font-semibold transition-colors cursor-pointer"
                 >
@@ -1016,10 +1127,10 @@ export const CustomerWebsite: React.FC = () => {
       {/* ======================================================== */}
       <section id="booking-results-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
+
           {/* COLUMN 1 (LEFT, 7 cols): "1 Available vehicles" */}
           <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-sm space-y-6">
-            
+
             {/* Column 1 Header */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3">
@@ -1036,8 +1147,8 @@ export const CustomerWebsite: React.FC = () => {
                 </div>
               </div>
 
-              <a 
-                href="#booking-form" 
+              <a
+                href="#booking-form"
                 className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 hover:underline"
               >
                 ✏️ Modify Search
@@ -1126,24 +1237,69 @@ export const CustomerWebsite: React.FC = () => {
               </div>
             )}
 
-            {/* Smart Banner: Intercity Outstation Route Detected */}
-            {isOutstationRoute && (
-              <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border border-blue-200/90 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-blue-950 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl shrink-0">📍</span>
+            {/* Ola-Style Outstation Route Bar with One Way / Round Trip Switcher (Matches book.olacabs.com) */}
+            {(tripType === 'OUTSTATION' || tripType === 'ROUND_TRIP' || isOutstationRoute) && (
+              <div className="bg-gradient-to-r from-[#030e2e] via-[#071B49] to-slate-900 border border-blue-500/40 rounded-2xl p-4 sm:p-5 text-white shadow-xl space-y-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-black text-blue-950 text-sm">
-                        Intercity Route Detected ({routeDistanceKm || 145} km)
-                      </p>
-                      <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                        Ola/Uber Outstation Pricing
+                      <span className="bg-amber-400 text-slate-950 font-black text-[11px] px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                        SJT Outstation
                       </span>
+                      <span className="font-extrabold text-sm sm:text-base text-white">
+                        About {routeDistanceKm || 145} km
+                      </span>
+                      {routeDurationText && (
+                        <span className="text-xs text-blue-200 font-semibold">
+                          • {routeDurationText}
+                        </span>
+                      )}
                     </div>
-                    <p className="text-xs text-blue-800 mt-1 leading-relaxed">
-                      Route from <strong>{pickup}</strong> to <strong>{destination}</strong> is outside Bengaluru city limits ({routeVia || 'via Highway Corridor'}). Transparent commercial fare calculated with per-km running charge + Driver Allowance (Bata). Tolls (FASTag) as per actuals.
+                    <p className="text-xs text-slate-300 mt-1 font-medium">
+                      {pickup} → {destination} {routeVia ? `(${routeVia})` : ''}
                     </p>
                   </div>
+
+                  {/* Ola-style One Way / Round Trip pill toggle */}
+                  <div className="bg-slate-800/90 p-1 rounded-xl flex items-center gap-1 border border-slate-700/80 self-stretch sm:self-auto justify-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTripType('OUTSTATION');
+                        fetchQuotes('OUTSTATION', pickup, destination, passengers);
+                      }}
+                      className={`px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                        tripType === 'OUTSTATION'
+                          ? 'bg-[#ED1735] text-white shadow-md'
+                          : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
+                      }`}
+                    >
+                      One Way
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTripType('ROUND_TRIP');
+                        fetchQuotes('ROUND_TRIP', pickup, destination, passengers);
+                      }}
+                      className={`px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                        tripType === 'ROUND_TRIP'
+                          ? 'bg-[#ED1735] text-white shadow-md'
+                          : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
+                      }`}
+                    >
+                      Round Trip
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-700/60 flex items-center justify-between text-[11px] text-slate-300 flex-wrap gap-2">
+                  <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                    <Check className="w-3.5 h-3.5 text-emerald-400" /> Transparent per-km billing + Driver Bata included
+                  </span>
+                  <span className="text-slate-400">
+                    *FASTag tolls, interstate permits & parking extra at actuals
+                  </span>
                 </div>
               </div>
             )}
@@ -1155,9 +1311,9 @@ export const CustomerWebsite: React.FC = () => {
                 { id: 'SEDAN', label: '4-Seater Sedan (₹12/km)' },
                 { id: 'SUV', label: '6-7 Seater SUV (₹15-₹18/km)' }
               ] : [
-                { 
-                  id: 'RELATED', 
-                  label: `Exact Match (${passengers <= 4 ? '4 Seater Sedan' : passengers <= 6 ? '6 Seater SUV' : passengers <= 7 ? '7 Seater Crysta' : passengers <= 12 ? '12 Seater Tempo' : passengers <= 17 ? '17 Seater Tempo' : passengers <= 25 ? '25 Seater Mini Bus' : '45 Seater Coach'})` 
+                {
+                  id: 'RELATED',
+                  label: `Exact Match (${passengers <= 4 ? '4 Seater Sedan' : passengers <= 6 ? '6 Seater SUV' : passengers <= 7 ? '7 Seater Crysta' : passengers <= 12 ? '12 Seater Tempo' : passengers <= 17 ? '17 Seater Tempo' : passengers <= 25 ? '25 Seater Mini Bus' : '45 Seater Coach'})`
                 },
                 { id: 'ALL', label: 'All Fleet Vehicles' },
                 { id: 'SEDAN', label: 'Sedans (4)' },
@@ -1169,11 +1325,10 @@ export const CustomerWebsite: React.FC = () => {
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                    selectedCategory === cat.id
-                      ? 'bg-[#ED1735] text-white shadow-md shadow-red-500/20'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${selectedCategory === cat.id
+                    ? 'bg-[#ED1735] text-white shadow-md shadow-red-500/20'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
                 >
                   {cat.label}
                 </button>
@@ -1198,14 +1353,13 @@ export const CustomerWebsite: React.FC = () => {
                   <div
                     key={veh._id || veh.id}
                     onClick={() => setSelectedVehicle(veh)}
-                    className={`rounded-2xl border transition-all duration-200 overflow-hidden cursor-pointer ${
-                      isSelected
-                        ? 'border-[#ED1735] ring-2 ring-red-500/20 bg-red-50/10 shadow-md'
-                        : 'border-slate-200 hover:border-slate-300 bg-white hover:shadow-md'
-                    }`}
+                    className={`rounded-2xl border transition-all duration-200 overflow-hidden cursor-pointer ${isSelected
+                      ? 'border-[#ED1735] ring-2 ring-red-500/20 bg-red-50/10 shadow-md'
+                      : 'border-slate-200 hover:border-slate-300 bg-white hover:shadow-md'
+                      }`}
                   >
                     <div className="p-4 sm:p-5 flex flex-col md:flex-row items-center gap-5">
-                      
+
                       {/* Left: Thumbnail & Availability */}
                       <div className="flex flex-col items-center gap-2 shrink-0 w-full md:w-36">
                         <div className="h-24 w-full bg-slate-50 rounded-xl p-1 flex items-center justify-center border border-slate-100">
@@ -1311,11 +1465,10 @@ export const CustomerWebsite: React.FC = () => {
                             e.stopPropagation();
                             setSelectedVehicle(veh);
                           }}
-                          className={`w-full py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                            isSelected
-                              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                              : 'bg-[#ED1735] hover:bg-[#c91029] text-white shadow-md shadow-red-500/20'
-                          }`}
+                          className={`w-full py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${isSelected
+                            ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                            : 'bg-[#ED1735] hover:bg-[#c91029] text-white shadow-md shadow-red-500/20'
+                            }`}
                         >
                           <span>{isSelected ? 'Selected ✓' : 'Select vehicle'}</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -1335,7 +1488,7 @@ export const CustomerWebsite: React.FC = () => {
 
           {/* COLUMN 2 (RIGHT, 5 cols): "2 Booking details" */}
           <div className="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-xl space-y-6 lg:sticky lg:top-28">
-            
+
             {/* Column 2 Header */}
             <div className="space-y-3 pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3">
@@ -1612,9 +1765,8 @@ export const CustomerWebsite: React.FC = () => {
               <div className="grid grid-cols-3 gap-2 text-center text-xs">
                 {/* Step 1 */}
                 <div className="space-y-1">
-                  <div className={`w-7 h-7 mx-auto rounded-full flex items-center justify-center font-bold text-xs ${
-                    confirmedBooking ? 'bg-emerald-600 text-white' : 'bg-[#ED1735] text-white ring-4 ring-red-100'
-                  }`}>
+                  <div className={`w-7 h-7 mx-auto rounded-full flex items-center justify-center font-bold text-xs ${confirmedBooking ? 'bg-emerald-600 text-white' : 'bg-[#ED1735] text-white ring-4 ring-red-100'
+                    }`}>
                     {confirmedBooking ? <Check className="w-4 h-4" /> : '1'}
                   </div>
                   <div className="font-bold text-[11px] text-slate-800">Request submitted</div>
@@ -1623,13 +1775,12 @@ export const CustomerWebsite: React.FC = () => {
 
                 {/* Step 2 */}
                 <div className="space-y-1">
-                  <div className={`w-7 h-7 mx-auto rounded-full flex items-center justify-center font-bold text-xs ${
-                    confirmedBooking?.assigned_driver_id
-                      ? 'bg-emerald-600 text-white'
-                      : confirmedBooking
+                  <div className={`w-7 h-7 mx-auto rounded-full flex items-center justify-center font-bold text-xs ${confirmedBooking?.assigned_driver_id
+                    ? 'bg-emerald-600 text-white'
+                    : confirmedBooking
                       ? 'bg-amber-500 text-white animate-pulse'
                       : 'bg-slate-200 text-slate-600'
-                  }`}>
+                    }`}>
                     {confirmedBooking?.assigned_driver_id ? <Check className="w-4 h-4" /> : '2'}
                   </div>
                   <div className="font-bold text-[11px] text-slate-800">Driver accepts</div>
@@ -1638,11 +1789,10 @@ export const CustomerWebsite: React.FC = () => {
 
                 {/* Step 3 */}
                 <div className="space-y-1">
-                  <div className={`w-7 h-7 mx-auto rounded-full flex items-center justify-center font-bold text-xs ${
-                    confirmedBooking?.assigned_driver_id
-                      ? 'bg-emerald-600 text-white ring-4 ring-emerald-100'
-                      : 'bg-slate-200 text-slate-400'
-                  }`}>
+                  <div className={`w-7 h-7 mx-auto rounded-full flex items-center justify-center font-bold text-xs ${confirmedBooking?.assigned_driver_id
+                    ? 'bg-emerald-600 text-white ring-4 ring-emerald-100'
+                    : 'bg-slate-200 text-slate-400'
+                    }`}>
                     {confirmedBooking?.assigned_driver_id ? <Check className="w-4 h-4" /> : '3'}
                   </div>
                   <div className="font-bold text-[11px] text-slate-800">Pay driver directly</div>
@@ -1881,7 +2031,7 @@ export const CustomerWebsite: React.FC = () => {
       {/* ======================================================== */}
       <section id="services-section" className="py-16 bg-white border-t border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          
+
           <div className="text-center max-w-3xl mx-auto space-y-3">
             <span className="text-xs font-extrabold text-[#ED1735] uppercase tracking-widest bg-red-50 px-3 py-1 rounded-full border border-red-200">
               Custom Fleet Packages Across South India
@@ -1895,7 +2045,7 @@ export const CustomerWebsite: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            
+
             {/* Service 1: Corporate & Employee Transport */}
             <div className="bg-slate-50 hover:bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
               <div className="space-y-4">
@@ -1914,7 +2064,7 @@ export const CustomerWebsite: React.FC = () => {
                   <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Corporate invoice requests handled by SJT operations</li>
                 </ul>
               </div>
-              <button 
+              <button
                 onClick={() => {
                   setTripType('LOCAL');
                   document.getElementById('booking-form')?.scrollIntoView({ behavior: 'smooth' });
@@ -1944,7 +2094,7 @@ export const CustomerWebsite: React.FC = () => {
                   <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Decorated bridal & groom luxury cars on request</li>
                 </ul>
               </div>
-              <button 
+              <button
                 onClick={() => {
                   setTripType('ROUND_TRIP');
                   document.getElementById('booking-form')?.scrollIntoView({ behavior: 'smooth' });
@@ -1974,7 +2124,7 @@ export const CustomerWebsite: React.FC = () => {
                   <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Pushback luxury seating with mobile charging ports</li>
                 </ul>
               </div>
-              <button 
+              <button
                 onClick={() => {
                   setTripType('ROUND_TRIP');
                   setDestination('Coorg, Karnataka');
@@ -2005,7 +2155,7 @@ export const CustomerWebsite: React.FC = () => {
                   <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Inter-state permit handling for Andhra and Tamil Nadu</li>
                 </ul>
               </div>
-              <button 
+              <button
                 onClick={() => {
                   setTripType('OUTSTATION');
                   setDestination('Tirupati, Andhra Pradesh');
@@ -2036,7 +2186,7 @@ export const CustomerWebsite: React.FC = () => {
                   <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Tolls, parking, and permits are payable at actuals</li>
                 </ul>
               </div>
-              <button 
+              <button
                 onClick={() => {
                   setTripType('AIRPORT');
                   setDestination('Kempegowda International Airport (BLR)');
@@ -2067,7 +2217,7 @@ export const CustomerWebsite: React.FC = () => {
                   <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> PA sound system, mic & emergency first aid onboard</li>
                 </ul>
               </div>
-              <button 
+              <button
                 onClick={() => {
                   setPassengers(25);
                   document.getElementById('booking-form')?.scrollIntoView({ behavior: 'smooth' });
@@ -2088,7 +2238,7 @@ export const CustomerWebsite: React.FC = () => {
       {/* ======================================================== */}
       <section className="py-16 bg-slate-50 border-t border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          
+
           <div className="text-center max-w-2xl mx-auto space-y-2">
             <span className="text-xs font-black text-[#ED1735] uppercase tracking-wider">
               The SJT Travel Advantage
@@ -2099,7 +2249,7 @@ export const CustomerWebsite: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            
+
             <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm flex items-start gap-4">
               <div className="p-3 bg-red-50 text-[#ED1735] rounded-2xl shrink-0">
                 <ShieldCheck className="w-6 h-6" />
@@ -2181,7 +2331,7 @@ export const CustomerWebsite: React.FC = () => {
       {/* ======================================================== */}
       <section id="reviews-section" className="py-16 bg-white border-t border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          
+
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <span className="text-xs font-black text-[#ED1735] uppercase tracking-wider">
@@ -2191,7 +2341,7 @@ export const CustomerWebsite: React.FC = () => {
                 What Our Customers Say About SJT Travels
               </h2>
             </div>
-            
+
             <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 px-4 py-2 rounded-2xl shrink-0">
               <div className="flex text-amber-500">
                 {[...Array(5)].map((_, i) => (
@@ -2204,7 +2354,7 @@ export const CustomerWebsite: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
+
             {/* Review 1 */}
             <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 flex flex-col justify-between space-y-4">
               <div className="space-y-3">
@@ -2300,16 +2450,16 @@ export const CustomerWebsite: React.FC = () => {
       {/* ======================================================== */}
       <section className="py-12 bg-gradient-to-b from-[#071B49] via-[#09225c] to-[#051336] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-          
+
           {/* Main Official Banner Card */}
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#030e2e] via-[#071B49] to-slate-900 border border-blue-500/40 p-4 sm:p-6 lg:p-8 shadow-2xl">
             <div className="flex flex-col lg:flex-row items-center gap-6">
-              
+
               {/* Official Banner Image */}
               <div className="w-full lg:w-7/12 relative group overflow-hidden rounded-2xl shadow-2xl border border-blue-400/30 bg-blue-950/50">
-                <img 
-                  src="/sjt_user_app_launching_soon.jpg" 
-                  alt="SJT Cabs User App Launching Soon" 
+                <img
+                  src="/sjt_user_app_launching_soon.jpg"
+                  alt="SJT Cabs User App Launching Soon"
                   className="w-full h-auto object-cover transform group-hover:scale-102 transition-transform duration-500"
                 />
               </div>
@@ -2391,7 +2541,7 @@ export const CustomerWebsite: React.FC = () => {
                       <span>Thank you! We will notify you on WhatsApp as soon as the app goes live.</span>
                     </div>
                   ) : (
-                    <form 
+                    <form
                       onSubmit={(e) => {
                         e.preventDefault();
                         if (userAppPhone.trim()) {
@@ -2401,7 +2551,7 @@ export const CustomerWebsite: React.FC = () => {
                       }}
                       className="flex items-center gap-2"
                     >
-                      <input 
+                      <input
                         type="tel"
                         value={userAppPhone}
                         onChange={(e) => setUserAppPhone(e.target.value)}
@@ -2435,7 +2585,7 @@ export const CustomerWebsite: React.FC = () => {
       {/* ======================================================== */}
       <section id="faq-section" className="py-16 bg-white border-t border-slate-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-          
+
           <div className="text-center space-y-2">
             <span className="text-xs font-black text-[#ED1735] uppercase tracking-wider">
               Got Questions?
@@ -2472,7 +2622,7 @@ export const CustomerWebsite: React.FC = () => {
                 a: 'After a driver accepts your request, their contact and vehicle details appear in your booking status. SMS and WhatsApp booking notifications are not currently available.'
               }
             ].map((faq, idx) => (
-              <div 
+              <div
                 key={idx}
                 className="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50 transition-all"
               >
@@ -2543,7 +2693,7 @@ export const CustomerWebsite: React.FC = () => {
       <footer className="bg-[#051336] text-slate-300 pt-16 pb-12 border-t border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-slate-800/80">
-            
+
             {/* Column 1: Brand & Credentials */}
             <div className="space-y-4">
               <div className="flex items-center gap-3">
@@ -2743,13 +2893,12 @@ export const CustomerWebsite: React.FC = () => {
                   <span className="text-xs font-mono font-bold text-slate-500">
                     Ref: <strong className="text-slate-900">{trackingResult.booking_code}</strong>
                   </span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-black uppercase flex items-center gap-1.5 ${
-                    trackingResult.status === 'COMPLETED'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : trackingResult.status === 'IN_PROGRESS' || trackingResult.status === 'ASSIGNED'
+                  <span className={`px-3 py-1 rounded-full text-xs font-black uppercase flex items-center gap-1.5 ${trackingResult.status === 'COMPLETED'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : trackingResult.status === 'IN_PROGRESS' || trackingResult.status === 'ASSIGNED'
                       ? 'bg-blue-100 text-blue-800'
                       : 'bg-amber-100 text-amber-800'
-                  }`}>
+                    }`}>
                     <span className="w-2 h-2 rounded-full bg-current animate-ping"></span>
                     {trackingResult.status === 'CONFIRMED' ? 'Awaiting Driver Acceptance' : trackingResult.status}
                   </span>
@@ -2920,6 +3069,105 @@ export const CustomerWebsite: React.FC = () => {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* OLA-STYLE OUTSTATION / AIRPORT INTERCEPT MODAL */}
+      {/* Matches book.olacabs.com UI & Booking Flow */}
+      {/* ======================================================== */}
+      {switchPromptModal?.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div 
+            className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-100 text-center relative overflow-hidden animate-in zoom-in-95 duration-200"
+            role="dialog"
+            aria-modal="true"
+          >
+            {/* Top pill badge */}
+            <div className="flex justify-center mb-3">
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
+                switchPromptModal.type === 'OUTSTATION' 
+                  ? 'bg-amber-100 text-amber-900 border border-amber-200' 
+                  : switchPromptModal.type === 'AIRPORT'
+                    ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                    : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+              }`}>
+                {switchPromptModal.type === 'OUTSTATION' ? '🚗 Outstation Corridor' : switchPromptModal.type === 'AIRPORT' ? '✈️ Airport Corridor' : '🏙️ Intra-City Drop'}
+              </span>
+            </div>
+
+            {/* Title matching Ola: "Book Ola Outstation" */}
+            <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              {switchPromptModal.type === 'OUTSTATION' 
+                ? 'Book SJT Outstation' 
+                : switchPromptModal.type === 'AIRPORT' 
+                  ? 'Book Airport Transfer' 
+                  : 'Book City Ride'}
+            </h3>
+
+            {/* Message matching Ola: "Drop location is outside city limits. Continue booking Outstation instead?" */}
+            <p className="text-sm text-slate-600 mt-2.5 leading-relaxed font-medium">
+              {switchPromptModal.type === 'OUTSTATION' 
+                ? 'Drop location is outside city limits. Continue booking Outstation instead?' 
+                : switchPromptModal.type === 'AIRPORT'
+                  ? 'Drop location is Kempegowda International Airport. Continue booking dedicated Airport Transfer package instead?'
+                  : 'Drop location is within Bengaluru city limits. Switch to City Ride for lower per-km pricing?'}
+            </p>
+
+            {/* Route & Distance Preview pill */}
+            {switchPromptModal.detectedDistanceKm && (
+              <div className="mt-4 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-between text-xs">
+                <div className="text-left truncate pr-2">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Detected Route</span>
+                  <span className="font-bold text-slate-800 truncate block">
+                    {destination}
+                  </span>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="font-black text-emerald-700 font-mono text-sm block">
+                    ~{switchPromptModal.detectedDistanceKm} km
+                  </span>
+                  {switchPromptModal.detectedDurationText && (
+                    <span className="text-[10px] text-slate-500 font-medium block">
+                      {switchPromptModal.detectedDurationText}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Ola-style two-action button row */}
+            <div className="mt-6 grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSwitchPromptModal(null);
+                  document.getElementById('customer-destination-location')?.focus();
+                }}
+                className="w-full py-3 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-98 text-slate-700 font-bold text-xs sm:text-sm transition-all cursor-pointer shadow-xs"
+              >
+                Change Location
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const target = switchPromptModal.targetTripType;
+                  setSwitchPromptModal(null);
+                  setTripType(target);
+                  fetchQuotes(target, pickup, destination, passengers);
+                  document.getElementById('booking-results-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="w-full py-3 px-3 rounded-xl bg-[#ED1735] hover:bg-[#c91029] active:scale-98 text-white font-extrabold text-xs sm:text-sm transition-all cursor-pointer shadow-lg shadow-red-500/25"
+              >
+                {switchPromptModal.type === 'OUTSTATION' 
+                  ? 'Change to Outstation' 
+                  : switchPromptModal.type === 'AIRPORT' 
+                    ? 'Change to Airport' 
+                    : 'Change to City Ride'}
+              </button>
+            </div>
           </div>
         </div>
       )}

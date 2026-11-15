@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { LocationSuggestionField } from './LocationSuggestionField';
 import { FareQuote, getFareQuotes } from '../services/fareQuotes';
+import { calculateRouteSync, isAirportLocation, isOutstationDestination } from '../services/distanceService';
 
 const localDateInputValue = (date: Date) => {
   const year = date.getFullYear();
@@ -123,6 +124,16 @@ export const CustomerMobileApp: React.FC = () => {
   const [specialRequests, setSpecialRequests] = useState('');
   const [rating, setRating] = useState<number>(5);
   const [feedback, setFeedback] = useState('Outstanding ride! The Tempo Traveller was clean, driver Ramesh Kumar was punctual and courteous.');
+
+  // Ola-style Intercept Switch Modal State
+  const [switchPromptModal, setSwitchPromptModal] = useState<{
+    isOpen: boolean;
+    type: 'OUTSTATION' | 'AIRPORT' | 'CITY';
+    detectedLocation: string;
+    detectedDistanceKm?: number;
+    detectedDurationText?: string;
+    targetTripType: 'POINT_TO_POINT' | 'LOCAL' | 'AIRPORT' | 'OUTSTATION' | 'ROUND_TRIP';
+  } | null>(null);
 
   // Live Location Detection via Device GPS
   const handleDetectLiveLocation = () => {
@@ -347,7 +358,8 @@ export const CustomerMobileApp: React.FC = () => {
     setCurrentSlide(8); // Proceed to Booking Details
   };
 
-  const handleSearchVehicles = async () => {
+  const handleSearchVehicles = async (overrideTripType?: 'POINT_TO_POINT' | 'LOCAL' | 'AIRPORT' | 'OUTSTATION' | 'ROUND_TRIP' | React.MouseEvent) => {
+    const activeTrip = typeof overrideTripType === 'string' ? overrideTripType : tripType;
     if (!fromCity.trim() || !toCity.trim()) {
       setVehicleSearchError('Enter both a pickup location and destination to search.');
       return;
@@ -360,15 +372,47 @@ export const CustomerMobileApp: React.FC = () => {
       setVehicleSearchError('Choose between 1 and 55 passengers to find a suitable vehicle.');
       return;
     }
+
+    const trimmedPickup = fromCity.trim();
+    const trimmedDest = toCity.trim();
+
+    // Ola-Style Intercept Modal Triggers (Matches book.olacabs.com)
+    if (activeTrip === 'POINT_TO_POINT') {
+      if (isAirportLocation(trimmedDest)) {
+        const route = calculateRouteSync(trimmedPickup, trimmedDest, 'AIRPORT');
+        setSwitchPromptModal({
+          isOpen: true,
+          type: 'AIRPORT',
+          targetTripType: 'AIRPORT',
+          detectedLocation: trimmedDest,
+          detectedDistanceKm: route.distanceKm,
+          detectedDurationText: route.durationText
+        });
+        return;
+      }
+      if (isOutstationDestination(trimmedDest, trimmedPickup)) {
+        const route = calculateRouteSync(trimmedPickup, trimmedDest, 'OUTSTATION');
+        setSwitchPromptModal({
+          isOpen: true,
+          type: 'OUTSTATION',
+          targetTripType: 'OUTSTATION',
+          detectedLocation: trimmedDest,
+          detectedDistanceKm: route.distanceKm,
+          detectedDurationText: route.durationText
+        });
+        return;
+      }
+    }
+
     setQuotingFare(true);
     try {
       const result = await getFareQuotes({ 
-        pickup: fromCity, 
-        destination: toCity, 
-        tripType, 
+        pickup: trimmedPickup, 
+        destination: trimmedDest, 
+        tripType: activeTrip, 
         passengers,
         journeyDate,
-        returnDate: tripType === 'ROUND_TRIP' ? returnDate : undefined
+        returnDate: activeTrip === 'ROUND_TRIP' ? returnDate : undefined
       });
       setFareQuotes(Object.fromEntries(result.quotes.map(quote => [String(quote.vehicle_id), quote])));
       setRouteDistanceKm(result.distance_km);
@@ -1234,8 +1278,49 @@ export const CustomerMobileApp: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Route Distance Banner */}
-                  {(routeDistanceRange || routeDistanceKm) && (
+                  {/* Route Distance Banner & Ola Outstation Switcher */}
+                  {(tripType === 'OUTSTATION' || tripType === 'ROUND_TRIP') ? (
+                    <div className="mb-3 p-3 rounded-2xl bg-[#071B49] text-white shadow-md space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="bg-amber-400 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded-full uppercase">
+                              Outstation
+                            </span>
+                            <span className="font-extrabold text-xs text-white">
+                              About {routeDistanceKm || 145} km
+                            </span>
+                          </div>
+                          {routeDurationText && (
+                            <span className="text-[10px] text-blue-200 block mt-0.5">⏱️ {routeDurationText}</span>
+                          )}
+                        </div>
+                        {/* Switcher */}
+                        <div className="bg-slate-800 p-0.5 rounded-xl flex items-center border border-slate-700">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTripType('OUTSTATION');
+                              handleSearchVehicles('OUTSTATION');
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-black ${tripType === 'OUTSTATION' ? 'bg-[#0066FF] text-white' : 'text-slate-300'}`}
+                          >
+                            One Way
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTripType('ROUND_TRIP');
+                              handleSearchVehicles('ROUND_TRIP');
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-black ${tripType === 'ROUND_TRIP' ? 'bg-[#0066FF] text-white' : 'text-slate-300'}`}
+                          >
+                            Round Trip
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (routeDistanceRange || routeDistanceKm) ? (
                     <div className="mb-3 px-3 py-2 rounded-xl bg-blue-50 border border-blue-200/80 text-blue-900 text-xs font-bold flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
@@ -1245,7 +1330,7 @@ export const CustomerMobileApp: React.FC = () => {
                         <span className="text-slate-600 font-medium text-[11px]">⏱️ {routeDurationText}</span>
                       )}
                     </div>
-                  )}
+                  ) : null}
 
                   {/* Vehicle List Cards matching Mockup 1 */}
                   {filteredAppVehicles.length > 0 ? <div className="space-y-3">
@@ -2174,6 +2259,62 @@ export const CustomerMobileApp: React.FC = () => {
                     <button onClick={() => { setCustomerAuthError(''); setCurrentSlide(4); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-100">Create customer account</button>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* OLA-STYLE OUTSTATION / AIRPORT INTERCEPT POPUP IN APP (Matches book.olacabs.com) */}
+            {switchPromptModal?.isOpen && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+                <div className="bg-white rounded-3xl w-full p-5 shadow-2xl border border-slate-100 text-center relative overflow-hidden animate-zoom-in">
+                  <div className="flex justify-center mb-2.5">
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      switchPromptModal.type === 'OUTSTATION' 
+                        ? 'bg-amber-100 text-amber-900 border border-amber-200' 
+                        : 'bg-blue-100 text-blue-900 border border-blue-200'
+                    }`}>
+                      {switchPromptModal.type === 'OUTSTATION' ? '🚗 Outstation Corridor' : '✈️ Airport Corridor'}
+                    </span>
+                  </div>
+
+                  <h3 className="text-base font-black text-slate-900">
+                    {switchPromptModal.type === 'OUTSTATION' ? 'Book SJT Outstation' : 'Book Airport Transfer'}
+                  </h3>
+
+                  <p className="text-xs text-slate-600 mt-2 leading-relaxed font-medium">
+                    {switchPromptModal.type === 'OUTSTATION'
+                      ? 'Drop location is outside city limits. Continue booking Outstation instead?'
+                      : 'Drop location is Kempegowda International Airport. Continue booking dedicated Airport Transfer package instead?'}
+                  </p>
+
+                  {switchPromptModal.detectedDistanceKm && (
+                    <div className="mt-3 p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-700 truncate text-[11px]">{toCity}</span>
+                      <span className="font-black text-emerald-700 font-mono text-xs shrink-0">~{switchPromptModal.detectedDistanceKm} km</span>
+                    </div>
+                  )}
+
+                  <div className="mt-4 grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setSwitchPromptModal(null)}
+                      className="w-full py-2.5 px-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs"
+                    >
+                      Change Location
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = switchPromptModal.targetTripType;
+                        setSwitchPromptModal(null);
+                        setTripType(target);
+                        handleSearchVehicles(target);
+                      }}
+                      className="w-full py-2.5 px-2 rounded-xl bg-[#0066FF] hover:bg-blue-700 text-white font-black text-xs shadow-md shadow-blue-500/25"
+                    >
+                      {switchPromptModal.type === 'OUTSTATION' ? 'Change to Outstation' : 'Change to Airport'}
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 

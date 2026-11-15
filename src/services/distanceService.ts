@@ -166,6 +166,8 @@ export const VERIFIED_HIGHWAY_PAIRS: Record<string, { km: number; durationText: 
   'uttarahalli_electronic city': { km: 22, durationText: '~45 mins', via: 'via NICE Ring Rd / Hosur Rd' },
   'uttarahalli_airport': { km: 48, durationText: '~1 hr 15 mins', via: 'via Airport Elevated Expressway' },
   'uttarahalli_kempegowda airport': { km: 48, durationText: '~1 hr 15 mins', via: 'via Airport Elevated Expressway' },
+  'uttarahalli_kempegowda international airport': { km: 48, durationText: '~1 hr 15 mins', via: 'via Airport Elevated Expressway' },
+  'uttarahalli_blr airport': { km: 48, durationText: '~1 hr 15 mins', via: 'via Airport Elevated Expressway' },
   'uttarahalli_majestic': { km: 13, durationText: '~35 mins', via: 'via Mysore Road & KR Market' },
   'uttarahalli_koramangala': { km: 14, durationText: '~40 mins', via: 'via Inner Ring Rd' },
   'uttarahalli_jayanagar': { km: 9, durationText: '~25 mins', via: 'via Kanakapura Road' },
@@ -416,3 +418,47 @@ function parseDurationToSeconds(text: string): number {
   if (minMatch) seconds += parseInt(minMatch[1], 10) * 60;
   return seconds;
 }
+
+export function isAirportLocation(text: string): boolean {
+  if (!text) return false;
+  const clean = text.toLowerCase();
+  return (
+    clean.includes('airport') ||
+    clean.includes('kempegowda') ||
+    clean.includes('blr') ||
+    clean.includes('kia') ||
+    clean.includes('terminal 1') ||
+    clean.includes('terminal 2') ||
+    clean.includes('devanahalli')
+  );
+}
+
+export function isOutstationDestination(dest: string, pickup: string = ''): boolean {
+  if (!dest) return false;
+  const clean = dest.toLowerCase();
+  if (isAirportLocation(clean)) return false;
+
+  const outstationKeywords = [
+    'mysore', 'mysuru', 'coorg', 'madikeri', 'kushalnagar', 'ooty', 'coonoor',
+    'chikmagalur', 'chikkamagaluru', 'mullayanagiri', 'hassan', 'sakleshpur',
+    'belur', 'halebeedu', 'shravanabelagola', 'tirupati', 'hampi', 'hospet',
+    'hosapete', 'shivamogga', 'shimoga', 'jog falls', 'davanagere', 'chitradurga',
+    'tumakuru', 'tumkur', 'kolar', 'chikkaballapur', 'bandipur', 'kabini',
+    'mangaluru', 'mangalore', 'udupi', 'malpe', 'dharmasthala', 'subramanya',
+    'kukke', 'gokarna', 'murudeshwar', 'hubballi', 'hubli', 'belagavi', 'belgaum',
+    'wayanad', 'pondicherry', 'chennai', 'hyderabad', 'goa', 'mandya',
+    'srirangapatna', 'ramanagara', 'channapatna', 'nandi hills', 'kanakapura'
+  ];
+
+  if (outstationKeywords.some(k => clean.includes(k))) return true;
+
+  if (pickup) {
+    const route = calculateRouteSync(pickup, dest, 'POINT_TO_POINT');
+    if (route.distanceKm > 45 && !isAirportLocation(dest)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
