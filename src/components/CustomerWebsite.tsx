@@ -47,9 +47,9 @@ import confetti from 'canvas-confetti';
 import { LocationSuggestionField } from './LocationSuggestionField';
 import { FareQuote, getFareQuotes } from '../services/fareQuotes';
 
-const API_BASE = import.meta.env.VITE_API_URL || (typeof window !== 'undefined'
+const API_BASE = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ? `${window.location.protocol}//${window.location.hostname}:5000`
-  : 'http://localhost:5000');
+  : '');
 
 const toLocalDateInput = (date: Date) => {
   const year = date.getFullYear();

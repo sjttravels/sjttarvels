@@ -356,15 +356,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       // Try serverless API
       try {
-        const apiBase = import.meta.env.VITE_API_URL || '';
+        const apiBase = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+          ? `${window.location.protocol}//${window.location.hostname}:5000`
+          : '');
         const res = await fetch(`${apiBase}/api/bookings`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newBooking)
         });
-        if (res.ok) {
+        const contentType = res.headers.get('content-type') || '';
+        if (res.ok && contentType.includes('application/json')) {
           const serverCreated = await res.json();
-          if (serverCreated && serverCreated.booking_code) {
+          if (serverCreated && (serverCreated.booking_code || serverCreated.bookingCode)) {
             Object.assign(newBooking, serverCreated);
           }
         }
