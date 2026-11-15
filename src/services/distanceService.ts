@@ -174,6 +174,45 @@ export const VERIFIED_HIGHWAY_PAIRS: Record<string, { km: number; durationText: 
   'uttarahalli_jp nagar': { km: 6, durationText: '~20 mins', via: 'via 24th Main' },
   'uttarahalli_banashankari': { km: 5, durationText: '~15 mins', via: 'via Outer Ring Rd' },
   'uttarahalli_hebbal': { km: 24, durationText: '~1 hr', via: 'via Outer Ring Rd' },
+  'uttarahalli_yelahanka': { km: 32, durationText: '~1 hr 15 mins', via: 'via Outer Ring Rd & Bellary Rd' },
+
+  'whitefield_yelahanka': { km: 28, durationText: '~1 hr 5 mins', via: 'via SH 104 / Budigere & Bagalur' },
+  'whitefield_indiranagar': { km: 16, durationText: '~45 mins', via: 'via Old Airport Road' },
+  'whitefield_koramangala': { km: 18, durationText: '~50 mins', via: 'via Marathahalli & Sarjapur Rd' },
+  'whitefield_electronic city': { km: 26, durationText: '~55 mins', via: 'via Sarjapur Rd & Hosur Rd' },
+  'whitefield_hebbal': { km: 24, durationText: '~55 mins', via: 'via Outer Ring Rd & Nagavara' },
+  'whitefield_majestic': { km: 22, durationText: '~1 hr', via: 'via Old Madras Rd' },
+  'whitefield_banashankari': { km: 26, durationText: '~1 hr 5 mins', via: 'via Outer Ring Rd' },
+
+  'indiranagar_koramangala': { km: 7, durationText: '~20 mins', via: 'via Inner Ring Rd' },
+  'indiranagar_hebbal': { km: 13, durationText: '~35 mins', via: 'via Old Madras Rd & Outer Ring Rd' },
+  'indiranagar_electronic city': { km: 20, durationText: '~45 mins', via: 'via Hosur Road Elevated Expressway' },
+  'indiranagar_majestic': { km: 9, durationText: '~25 mins', via: 'via MG Road & Cubbon Park' },
+  'indiranagar_yelahanka': { km: 21, durationText: '~50 mins', via: 'via Bellary Road NH 44' },
+
+  'koramangala_electronic city': { km: 15, durationText: '~30 mins', via: 'via Hosur Road Elevated Expressway' },
+  'koramangala_hebbal': { km: 17, durationText: '~45 mins', via: 'via Outer Ring Rd' },
+  'koramangala_majestic': { km: 10, durationText: '~30 mins', via: 'via Hosur Road & Richmond Circle' },
+  'koramangala_yelahanka': { km: 24, durationText: '~55 mins', via: 'via Bellary Road' },
+
+  'hebbal_electronic city': { km: 32, durationText: '~1 hr 10 mins', via: 'via Outer Ring Rd & Hosur Rd' },
+  'hebbal_yelahanka': { km: 12, durationText: '~25 mins', via: 'via Bellary Road NH 44' },
+  'hebbal_majestic': { km: 11, durationText: '~30 mins', via: 'via Bellary Road' },
+
+  'banashankari_indiranagar': { km: 14, durationText: '~40 mins', via: 'via Marenahalli Rd & Inner Ring Rd' },
+  'banashankari_whitefield': { km: 26, durationText: '~1 hr 5 mins', via: 'via Outer Ring Rd' },
+  'banashankari_electronic city': { km: 19, durationText: '~40 mins', via: 'via NICE Road / Bannerghatta Rd' },
+  'banashankari_yelahanka': { km: 28, durationText: '~1 hr', via: 'via Outer Ring Rd & Bellary Rd' },
+
+  'kengeri_hebbal': { km: 25, durationText: '~55 mins', via: 'via Outer Ring Rd' },
+  'kengeri_whitefield': { km: 34, durationText: '~1 hr 20 mins', via: 'via Mysore Road & ORR' },
+  'kengeri_electronic city': { km: 24, durationText: '~45 mins', via: 'via NICE Ring Road' },
+  'kengeri_indiranagar': { km: 21, durationText: '~55 mins', via: 'via Mysore Road' },
+  'kengeri_yelahanka': { km: 31, durationText: '~1 hr 10 mins', via: 'via Outer Ring Rd' },
+
+  'jp nagar_yelahanka': { km: 27, durationText: '~1 hr', via: 'via Bellary Road' },
+  'jayanagar_yelahanka': { km: 24, durationText: '~55 mins', via: 'via Bellary Road' },
+  'majestic_yelahanka': { km: 16, durationText: '~40 mins', via: 'via Bellary Road' },
 
   // Airport Transfers
   'bangalore_airport': { km: 38, durationText: '~55 mins', via: 'via Bellary Road / Airport Expressway' },
@@ -205,12 +244,20 @@ export const VERIFIED_HIGHWAY_PAIRS: Record<string, { km: number; durationText: 
   'bengaluru_goa': { km: 560, durationText: '~10 hrs', via: 'via Hubballi / Karwar' }
 };
 
+const GENERIC_CITY_KEYS = new Set(['bangalore', 'bengaluru', 'karnataka', 'city']);
+
 export function extractLocationKey(text: string): string | null {
   const clean = String(text || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
   if (!clean) return null;
-  const sortedKeys = Object.keys(KNOWN_COORDINATES).sort((a, b) => b.length - a.length);
-  for (const key of sortedKeys) {
+  const allKeys = Object.keys(KNOWN_COORDINATES);
+  // Pass 1: Match specific localities, landmarks, tech parks and towns first
+  const specificKeys = allKeys.filter(k => !GENERIC_CITY_KEYS.has(k)).sort((a, b) => b.length - a.length);
+  for (const key of specificKeys) {
     if (clean.includes(key)) return key;
+  }
+  // Pass 2: Fall back to generic city names only if no specific locality is present
+  for (const key of GENERIC_CITY_KEYS) {
+    if (KNOWN_COORDINATES[key] && clean.includes(key)) return key;
   }
   return null;
 }
@@ -244,9 +291,11 @@ export function calculateRouteSync(pickup: string, destination: string, tripType
     const hit = VERIFIED_HIGHWAY_PAIRS[pair1] || VERIFIED_HIGHWAY_PAIRS[pair2];
     if (hit) {
       const isOutstation = hit.km > 45 || normTripType === 'OUTSTATION' || normTripType === 'ROUND_TRIP';
+      const minRange = Math.max(1, Math.round(hit.km * 0.94));
+      const maxRange = Math.round(hit.km * 1.16);
       return {
         distanceKm: hit.km,
-        distanceRange: `${hit.km} km`,
+        distanceRange: isOutstation ? `${hit.km} km` : `${minRange} km to ${maxRange} km`,
         durationSeconds: parseDurationToSeconds(hit.durationText),
         durationText: hit.durationText,
         routeVia: hit.via,
@@ -275,9 +324,12 @@ export function calculateRouteSync(pickup: string, destination: string, tripType
             : 'via National & State Highway Corridors')
         : (roadKm >= 15 ? 'via Outer Ring Rd & City Corridors' : 'via City Arterial Roads');
 
+      const minRange = Math.max(1, Math.round(roadKm * 0.94));
+      const maxRange = Math.round(roadKm * 1.16);
+
       return {
         distanceKm: roadKm,
-        distanceRange: `${roadKm} km`,
+        distanceRange: isOutstation ? `${roadKm} km` : `${minRange} km to ${maxRange} km`,
         durationSeconds: durSecs,
         durationText,
         routeVia,

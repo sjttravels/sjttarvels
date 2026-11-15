@@ -184,6 +184,51 @@ const VERIFIED_HIGHWAY_PAIRS = {
   'uttarahalli_electronic city': { km: 22, durationText: '~45 mins', via: 'via NICE Ring Rd / Hosur Rd' },
   'uttarahalli_airport': { km: 48, durationText: '~1 hr 15 mins', via: 'via Airport Elevated Expressway' },
   'uttarahalli_kempegowda airport': { km: 48, durationText: '~1 hr 15 mins', via: 'via Airport Elevated Expressway' },
+  'uttarahalli_majestic': { km: 13, durationText: '~35 mins', via: 'via Mysore Road & KR Market' },
+  'uttarahalli_koramangala': { km: 14, durationText: '~40 mins', via: 'via Inner Ring Rd' },
+  'uttarahalli_jayanagar': { km: 9, durationText: '~25 mins', via: 'via Kanakapura Road' },
+  'uttarahalli_jp nagar': { km: 6, durationText: '~20 mins', via: 'via 24th Main' },
+  'uttarahalli_banashankari': { km: 5, durationText: '~15 mins', via: 'via Outer Ring Rd' },
+  'uttarahalli_hebbal': { km: 24, durationText: '~1 hr', via: 'via Outer Ring Rd' },
+  'uttarahalli_yelahanka': { km: 32, durationText: '~1 hr 15 mins', via: 'via Outer Ring Rd & Bellary Rd' },
+
+  'whitefield_yelahanka': { km: 28, durationText: '~1 hr 5 mins', via: 'via SH 104 / Budigere & Bagalur' },
+  'whitefield_indiranagar': { km: 16, durationText: '~45 mins', via: 'via Old Airport Road' },
+  'whitefield_koramangala': { km: 18, durationText: '~50 mins', via: 'via Marathahalli & Sarjapur Rd' },
+  'whitefield_electronic city': { km: 26, durationText: '~55 mins', via: 'via Sarjapur Rd & Hosur Rd' },
+  'whitefield_hebbal': { km: 24, durationText: '~55 mins', via: 'via Outer Ring Rd & Nagavara' },
+  'whitefield_majestic': { km: 22, durationText: '~1 hr', via: 'via Old Madras Rd' },
+  'whitefield_banashankari': { km: 26, durationText: '~1 hr 5 mins', via: 'via Outer Ring Rd' },
+
+  'indiranagar_koramangala': { km: 7, durationText: '~20 mins', via: 'via Inner Ring Rd' },
+  'indiranagar_hebbal': { km: 13, durationText: '~35 mins', via: 'via Old Madras Rd & Outer Ring Rd' },
+  'indiranagar_electronic city': { km: 20, durationText: '~45 mins', via: 'via Hosur Road Elevated Expressway' },
+  'indiranagar_majestic': { km: 9, durationText: '~25 mins', via: 'via MG Road & Cubbon Park' },
+  'indiranagar_yelahanka': { km: 21, durationText: '~50 mins', via: 'via Bellary Road NH 44' },
+
+  'koramangala_electronic city': { km: 15, durationText: '~30 mins', via: 'via Hosur Road Elevated Expressway' },
+  'koramangala_hebbal': { km: 17, durationText: '~45 mins', via: 'via Outer Ring Rd' },
+  'koramangala_majestic': { km: 10, durationText: '~30 mins', via: 'via Hosur Road & Richmond Circle' },
+  'koramangala_yelahanka': { km: 24, durationText: '~55 mins', via: 'via Bellary Road' },
+
+  'hebbal_electronic city': { km: 32, durationText: '~1 hr 10 mins', via: 'via Outer Ring Rd & Hosur Rd' },
+  'hebbal_yelahanka': { km: 12, durationText: '~25 mins', via: 'via Bellary Road NH 44' },
+  'hebbal_majestic': { km: 11, durationText: '~30 mins', via: 'via Bellary Road' },
+
+  'banashankari_indiranagar': { km: 14, durationText: '~40 mins', via: 'via Marenahalli Rd & Inner Ring Rd' },
+  'banashankari_whitefield': { km: 26, durationText: '~1 hr 5 mins', via: 'via Outer Ring Rd' },
+  'banashankari_electronic city': { km: 19, durationText: '~40 mins', via: 'via NICE Road / Bannerghatta Rd' },
+  'banashankari_yelahanka': { km: 28, durationText: '~1 hr', via: 'via Outer Ring Rd & Bellary Rd' },
+
+  'kengeri_hebbal': { km: 25, durationText: '~55 mins', via: 'via Outer Ring Rd' },
+  'kengeri_whitefield': { km: 34, durationText: '~1 hr 20 mins', via: 'via Mysore Road & ORR' },
+  'kengeri_electronic city': { km: 24, durationText: '~45 mins', via: 'via NICE Ring Road' },
+  'kengeri_indiranagar': { km: 21, durationText: '~55 mins', via: 'via Mysore Road' },
+  'kengeri_yelahanka': { km: 31, durationText: '~1 hr 10 mins', via: 'via Outer Ring Rd' },
+
+  'jp nagar_yelahanka': { km: 27, durationText: '~1 hr', via: 'via Bellary Road' },
+  'jayanagar_yelahanka': { km: 24, durationText: '~55 mins', via: 'via Bellary Road' },
+  'majestic_yelahanka': { km: 16, durationText: '~40 mins', via: 'via Bellary Road' },
   'bangalore_airport': { km: 38, durationText: '~55 mins', via: 'via Bellary Road / Airport Expressway' },
   'bengaluru_airport': { km: 38, durationText: '~55 mins', via: 'via Bellary Road / Airport Expressway' },
   'bengaluru_coorg': { km: 250, durationText: '~5 hr 30 mins', via: 'via Mysore Expressway & Kushalnagar' },
@@ -193,12 +238,18 @@ const VERIFIED_HIGHWAY_PAIRS = {
   'bengaluru_hampi': { km: 340, durationText: '~6 hr 30 mins', via: 'via NH 48 / NH 50' }
 };
 
+const GENERIC_KEYS_SERVERLESS = new Set(['bangalore', 'bengaluru', 'karnataka', 'city']);
+
 function extractLocationKeyServerless(text) {
   const clean = String(text || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
   if (!clean) return null;
-  const sortedKeys = Object.keys(KNOWN_COORDINATES).sort((a, b) => b.length - a.length);
-  for (const key of sortedKeys) {
+  const allKeys = Object.keys(KNOWN_COORDINATES);
+  const specificKeys = allKeys.filter(k => !GENERIC_KEYS_SERVERLESS.has(k)).sort((a, b) => b.length - a.length);
+  for (const key of specificKeys) {
     if (clean.includes(key)) return key;
+  }
+  for (const key of GENERIC_KEYS_SERVERLESS) {
+    if (KNOWN_COORDINATES[key] && clean.includes(key)) return key;
   }
   return null;
 }
@@ -213,12 +264,15 @@ function calculateRouteServerless(pickup, destination, tripType) {
     const pair2 = `${k2}_${k1}`;
     const hit = VERIFIED_HIGHWAY_PAIRS[pair1] || VERIFIED_HIGHWAY_PAIRS[pair2];
     if (hit) {
+      const isOutstation = hit.km > 45 || normTripType === 'OUTSTATION' || normTripType === 'ROUND_TRIP';
+      const minR = Math.max(1, Math.round(hit.km * 0.94));
+      const maxR = Math.round(hit.km * 1.16);
       return {
         distanceKm: hit.km,
-        distanceRange: `${hit.km} km`,
+        distanceRange: isOutstation ? `${hit.km} km` : `${minR} km to ${maxR} km`,
         durationText: hit.durationText,
         routeVia: hit.via,
-        isOutstation: hit.km > 45 || normTripType === 'OUTSTATION' || normTripType === 'ROUND_TRIP'
+        isOutstation
       };
     }
 
@@ -244,9 +298,12 @@ function calculateRouteServerless(pickup, destination, tripType) {
         ? (isMysore ? 'via Bengaluru-Mysuru Expressway (NH 275)' : 'via National & State Highway Corridors')
         : (roadKm >= 15 ? 'via Outer Ring Rd & City Corridors' : 'via City Arterial Roads');
 
+      const minR = Math.max(1, Math.round(roadKm * 0.94));
+      const maxR = Math.round(roadKm * 1.16);
+
       return {
         distanceKm: roadKm,
-        distanceRange: `${roadKm} km`,
+        distanceRange: isOutstation ? `${roadKm} km` : `${minR} km to ${maxR} km`,
         durationText,
         routeVia,
         isOutstation
@@ -331,7 +388,7 @@ function calculateFareQuoteServerless(input) {
         fare = runningFare + driverAllowance;
         rateNote = `₹${v.cityPerKm}/km • ${distanceKm} km + ₹${driverAllowance} Driver Bata (Intercity)`;
       } else {
-        const minBase = v.seats <= 4 ? 150 : 250;
+        const minBase = v.seats <= 4 ? 150 : v.seats <= 6 ? 220 : v.seats <= 7 ? 280 : 500;
         runningFare = Math.max(minBase, Math.round(distanceKm * v.cityPerKm));
         driverAllowance = 0;
         fare = runningFare;

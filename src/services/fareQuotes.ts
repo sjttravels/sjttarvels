@@ -84,8 +84,8 @@ export function calculateClientSideQuotes(input: {
         billableKm = distanceKm;
         rateNote = `₹${v.cityPerKm}/km • ${distanceKm} km + ₹${driverAllowance} Driver Bata (Intercity)`;
       } else {
-        // Intra-city Point-to-Point Drop: Distance KM * City Per-KM (Min ₹150 for Sedan, ₹250 for SUV)
-        const minBase = v.seats <= 4 ? 150 : v.seats <= 6 ? 250 : 350;
+        // Intra-city Point-to-Point Drop matching Ola Cabs: Distance KM * City Per-KM (Min ₹150 for Sedan, ₹220 for Ertiga, ₹280 for Innova Crysta)
+        const minBase = v.seats <= 4 ? 150 : v.seats <= 6 ? 220 : v.seats <= 7 ? 280 : 500;
         runningFare = Math.max(minBase, Math.round(distanceKm * v.cityPerKm));
         driverAllowance = 0;
         fare = runningFare;

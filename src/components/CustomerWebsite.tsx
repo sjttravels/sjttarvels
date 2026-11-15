@@ -138,10 +138,28 @@ export const CustomerWebsite: React.FC = () => {
   const [userAppPhone, setUserAppPhone] = useState('');
   const [userAppNotified, setUserAppNotified] = useState(false);
 
-  // Quick Karnataka Destinations
-  const popularDestinations = [
-    'Mysore', 'Coorg', 'Ooty', 'Chikmagalur', 'Tirupati', 'Hampi', 'Kempegowda Airport'
+  // Contextual Quick Destinations based on Trip Type (Ola / Uber style)
+  const popularCityDestinations = [
+    'Indiranagar', 'Koramangala', 'Whitefield', 'Electronic City', 'HSR Layout',
+    'Jayanagar', 'Hebbal', 'Yelahanka', 'Banashankari', 'Majestic'
   ];
+  const popularOutstationDestinations = [
+    'Mysore', 'Coorg', 'Ooty', 'Chikmagalur', 'Tirupati', 'Hampi', 'Wayanad', 'Mangalore'
+  ];
+  const popularAirportDestinations = [
+    'Kempegowda Airport T1', 'Kempegowda Airport T2', 'Airport Departure Terminal'
+  ];
+  const popularLocalDestinations = [
+    'Bangalore Full Day (8hr/80km)', 'Electronic City & IT Parks', 'City Commercial Tour'
+  ];
+
+  const currentPopularList = tripType === 'POINT_TO_POINT'
+    ? popularCityDestinations
+    : tripType === 'AIRPORT'
+      ? popularAirportDestinations
+      : tripType === 'LOCAL'
+        ? popularLocalDestinations
+        : popularOutstationDestinations;
 
   // Geolocation Handler: Captures live coordinates and constructs direct Google Maps link for driver
   const handleDetectLiveLocation = () => {
@@ -219,11 +237,26 @@ export const CustomerWebsite: React.FC = () => {
     }
   };
 
+  // Request ID and debounce refs to prevent race conditions from keystroke requests
+  const latestQuoteRequestIdRef = useRef(0);
+  const debounceTimerRef = useRef<any>(null);
+
   // Auto-fetch quotes for accurate pricing
   const fetchQuotes = async (currentTripType = tripType, currentPickup = pickup, currentDest = destination, currentPass = passengers) => {
     if (!currentPickup.trim() || !currentDest.trim()) return;
+
+    // Instant local route sync preview
+    const syncRoute = calculateRouteSync(currentPickup, currentDest, currentTripType);
+    setRouteDistanceKm(syncRoute.distanceKm);
+    setRouteDistanceRange(syncRoute.distanceRange || null);
+    setRouteDurationText(syncRoute.durationText || null);
+    setRouteVia(syncRoute.routeVia || null);
+    setIsOutstationRoute(Boolean(syncRoute.isOutstation || syncRoute.distanceKm > 45));
+
+    const reqId = ++latestQuoteRequestIdRef.current;
     setQuotingFare(true);
     setSearchMessage('');
+
     try {
       const result = await getFareQuotes({
         pickup: currentPickup,
@@ -233,6 +266,10 @@ export const CustomerWebsite: React.FC = () => {
         journeyDate,
         returnDate: currentTripType === 'ROUND_TRIP' ? returnDate : undefined
       });
+
+      // Ignore if a newer request was dispatched while this was in-flight
+      if (reqId !== latestQuoteRequestIdRef.current) return;
+
       const quoteMap = Object.fromEntries(result.quotes.map(q => [String(q.vehicle_id), q]));
       setFareQuotes(quoteMap);
       setRouteDistanceKm(result.distance_km);
@@ -246,10 +283,21 @@ export const CustomerWebsite: React.FC = () => {
         setSelectedVehicle(matchingVeh);
       }
     } catch (err: any) {
-      setSearchMessage(err.message || 'Could not calculate route fare.');
+      if (reqId === latestQuoteRequestIdRef.current) {
+        setSearchMessage(err.message || 'Could not calculate route fare.');
+      }
     } finally {
-      setQuotingFare(false);
+      if (reqId === latestQuoteRequestIdRef.current) {
+        setQuotingFare(false);
+      }
     }
+  };
+
+  const debouncedFetchQuotes = (currentTripType = tripType, currentPickup = pickup, currentDest = destination, currentPass = passengers) => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      fetchQuotes(currentTripType, currentPickup, currentDest, currentPass);
+    }, 280);
   };
 
   useEffect(() => {
@@ -545,7 +593,8 @@ export const CustomerWebsite: React.FC = () => {
           driverAllowance = defaultBata;
           fare = runningFare + driverAllowance;
         } else {
-          runningFare = Math.max(isSedan ? 150 : 250, Math.round(routeDistanceKm * cityPerKmRate));
+          const cityMinFare = isSedan ? 150 : isErtiga ? 220 : isInnova ? 280 : isHycross ? 350 : 500;
+          runningFare = Math.max(cityMinFare, Math.round(routeDistanceKm * cityPerKmRate));
           driverAllowance = 0;
           fare = runningFare;
         }
@@ -572,14 +621,14 @@ export const CustomerWebsite: React.FC = () => {
 
     const extraKmRate = quote?.extra_km_rate || cityPerKmRate;
     const extraHrRate = quote?.extra_hour_rate || (seats <= 4 ? 200 : seats <= 7 ? 250 : 400);
-    const minKmText = isIntercity 
-      ? 'Intercity One-Way' 
-      : tripType === 'POINT_TO_POINT' 
-        ? 'Per-KM Drop' 
-        : tripType === 'OUTSTATION' 
-          ? '250 km / day' 
-          : tripType === 'LOCAL' 
-            ? '8 hrs / 80 km' 
+    const minKmText = isIntercity
+      ? 'Intercity One-Way'
+      : tripType === 'POINT_TO_POINT'
+        ? 'Per-KM Drop'
+        : tripType === 'OUTSTATION'
+          ? '250 km / day'
+          : tripType === 'LOCAL'
+            ? '8 hrs / 80 km'
             : 'Direct transfer';
 
     return {
@@ -594,10 +643,10 @@ export const CustomerWebsite: React.FC = () => {
       rateNote: quote?.rate_note || (
         isIntercity
           ? `₹${extraKmRate}/km • ${routeDistanceKm || 145} km + ₹${driverAllowance} Driver Bata`
-          : tripType === 'POINT_TO_POINT' 
-            ? `₹${extraKmRate}/km for ${veh.name} (Market rate city drop)` 
-            : tripType === 'LOCAL' 
-              ? 'Package fare (8 hrs / 80 km)' 
+          : tripType === 'POINT_TO_POINT'
+            ? `₹${extraKmRate}/km for ${veh.name} (Market rate city drop)`
+            : tripType === 'LOCAL'
+              ? 'Package fare (8 hrs / 80 km)'
               : 'Standard Karnataka commercial fare'
       )
     };
@@ -855,7 +904,12 @@ export const CustomerWebsite: React.FC = () => {
                         setPickupGoogleMapsUrl('');
                       }
                       if (destination.trim()) {
-                        fetchQuotes(tripType, val, destination, passengers);
+                        const syncRoute = calculateRouteSync(val, destination, tripType);
+                        setRouteDistanceKm(syncRoute.distanceKm);
+                        setRouteDistanceRange(syncRoute.distanceRange || null);
+                        setRouteDurationText(syncRoute.durationText || null);
+                        setRouteVia(syncRoute.routeVia || null);
+                        debouncedFetchQuotes(tripType, val, destination, passengers);
                       }
                     }}
                     onUseLiveLocation={handleDetectLiveLocation}
@@ -918,7 +972,15 @@ export const CustomerWebsite: React.FC = () => {
                             return;
                           }
                         }
-                        fetchQuotes(tripType, pickup, val, passengers);
+                        // Instant synchronous preview for instant UI response
+                        const syncRoute = calculateRouteSync(pickup.trim(), val, tripType);
+                        setRouteDistanceKm(syncRoute.distanceKm);
+                        setRouteDistanceRange(syncRoute.distanceRange || null);
+                        setRouteDurationText(syncRoute.durationText || null);
+                        setRouteVia(syncRoute.routeVia || null);
+                        setIsOutstationRoute(Boolean(syncRoute.isOutstation || syncRoute.distanceKm > 45));
+
+                        debouncedFetchQuotes(tripType, pickup.trim(), val, passengers);
                       }
                     }}
                     placeholder="Enter destination city or landmark"
@@ -1036,15 +1098,20 @@ export const CustomerWebsite: React.FC = () => {
               </div>
             </form>
 
-            {/* Popular quick route suggestions */}
+            {/* Contextual quick route suggestions matching Ola / Uber */}
             <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center gap-2 flex-wrap text-xs">
-              <span className="text-slate-400 font-bold text-[11px]">Popular from Bangalore:</span>
-              {popularDestinations.map(d => (
+              <span className="text-slate-400 font-bold text-[11px]">
+                {tripType === 'POINT_TO_POINT' ? 'Popular Bangalore Drops:' : tripType === 'AIRPORT' ? 'Popular Airport Terminals:' : tripType === 'LOCAL' ? 'Popular City Packages:' : 'Popular from Bangalore:'}
+              </span>
+              {currentPopularList.map(d => (
                 <button
                   key={d}
                   type="button"
                   onClick={() => {
-                    const dest = `${d}, Karnataka`;
+                    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+                    const dest = tripType === 'POINT_TO_POINT'
+                      ? `${d}, Bengaluru`
+                      : (d.includes('Airport') || d.includes('Package') ? d : `${d}, Karnataka`);
                     setDestination(dest);
                     const currentPick = pickup.trim() || 'Uttarahalli, Bengaluru';
                     if (!pickup.trim()) setPickup(currentPick);
@@ -1075,6 +1142,15 @@ export const CustomerWebsite: React.FC = () => {
                         return;
                       }
                     }
+
+                    // Immediate synchronous preview for instant zero-latency UI update
+                    const syncRoute = calculateRouteSync(currentPick, dest, tripType);
+                    setRouteDistanceKm(syncRoute.distanceKm);
+                    setRouteDistanceRange(syncRoute.distanceRange || null);
+                    setRouteDurationText(syncRoute.durationText || null);
+                    setRouteVia(syncRoute.routeVia || null);
+                    setIsOutstationRoute(Boolean(syncRoute.isOutstation || syncRoute.distanceKm > 45));
+
                     fetchQuotes(tripType, currentPick, dest, passengers);
                   }}
                   className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 text-[11px] font-semibold transition-colors cursor-pointer"
@@ -1417,10 +1493,10 @@ export const CustomerWebsite: React.FC = () => {
                             <span>
                               {breakdown.isIntercity
                                 ? `Running Fare (${routeDistanceKm || 145} km):`
-                                : tripType === 'POINT_TO_POINT' 
-                                  ? 'City Drop Fare:' 
-                                  : tripType === 'LOCAL' 
-                                    ? 'Package (8hr/80km):' 
+                                : tripType === 'POINT_TO_POINT'
+                                  ? 'City Drop Fare:'
+                                  : tripType === 'LOCAL'
+                                    ? 'Package (8hr/80km):'
                                     : 'Base package:'}
                             </span>
                             <span className="font-bold text-slate-800">₹{breakdown.runningFare.toLocaleString('en-IN')}</span>
@@ -1453,8 +1529,8 @@ export const CustomerWebsite: React.FC = () => {
                           <div className="text-[9px] text-slate-400">
                             {breakdown.isIntercity
                               ? `(${routeDistanceKm || 145} km @ ₹${breakdown.extraKmRate}/km + ₹${breakdown.driverAllowance} Driver Bata)`
-                              : tripType === 'POINT_TO_POINT' 
-                                ? `(${routeDistanceKm || 0} km @ ₹${breakdown.extraKmRate}/km)` 
+                              : tripType === 'POINT_TO_POINT'
+                                ? `(${routeDistanceKm || 0} km @ ₹${breakdown.extraKmRate}/km)`
                                 : '(Illustrative fare)'}
                           </div>
                         </div>
@@ -1706,8 +1782,8 @@ export const CustomerWebsite: React.FC = () => {
                   <span>
                     {selectedBreakdown.isIntercity
                       ? `Running Distance Fare (${routeDistanceKm || 145} km):`
-                      : tripType === 'POINT_TO_POINT' 
-                        ? 'City Drop Fare:' 
+                      : tripType === 'POINT_TO_POINT'
+                        ? 'City Drop Fare:'
                         : `Package fare (${selectedBreakdown.minKmText})`}
                   </span>
                   <span className="font-bold text-slate-800">₹{selectedBreakdown.runningFare.toLocaleString('en-IN')}</span>

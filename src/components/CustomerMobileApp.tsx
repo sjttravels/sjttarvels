@@ -230,8 +230,9 @@ export const CustomerMobileApp: React.FC = () => {
     const quoteFare = fareQuotes[String(vehicle.id || vehicle._id || name)]?.fare;
     const defaultBata = isSedan ? 400 : isErtiga ? 450 : isHycross ? 550 : isInnova ? 500 : 600;
     const isIntercity = Boolean((routeDistanceKm && routeDistanceKm > 45) || fareQuotes[String(vehicle.id || vehicle._id || name)]?.is_outstation_route);
+    const cityMin = isSedan ? 150 : isErtiga ? 220 : isInnova ? 280 : isHycross ? 350 : 500;
     const fallbackCityFare = routeDistanceKm 
-      ? (isIntercity ? Math.round(routeDistanceKm * cityPerKmRate) + defaultBata : Math.max(isSedan ? 150 : 250, Math.round(routeDistanceKm * cityPerKmRate))) 
+      ? (isIntercity ? Math.round(routeDistanceKm * cityPerKmRate) + defaultBata : Math.max(cityMin, Math.round(routeDistanceKm * cityPerKmRate))) 
       : (isSedan ? 350 : 550);
     const fare = quoteFare || (tripType === 'POINT_TO_POINT' ? fallbackCityFare : (Number(vehicle.ratePerDay) || 2400));
 
@@ -1143,6 +1144,34 @@ export const CustomerMobileApp: React.FC = () => {
                         placeholder="Destination city, area, or landmark"
                         required
                       />
+
+                      {/* Contextual Quick Chips for Instant Selection */}
+                      <div className="flex items-center gap-1.5 flex-wrap pt-2">
+                        {(tripType === 'POINT_TO_POINT'
+                          ? ['Indiranagar', 'Koramangala', 'Whitefield', 'Electronic City', 'Hebbal', 'Yelahanka']
+                          : ['Mysuru', 'Coorg', 'Ooty', 'Chikmagalur', 'Tirupati', 'Hampi']
+                        ).map(city => (
+                          <button
+                            key={city}
+                            type="button"
+                            onClick={() => {
+                              const dest = tripType === 'POINT_TO_POINT' ? `${city}, Bengaluru` : `${city}, Karnataka`;
+                              setToCity(dest);
+                              setFareQuotes({});
+                              const currentFrom = fromCity.trim() || 'Uttarahalli, Bengaluru';
+                              if (!fromCity.trim()) setFromCity(currentFrom);
+                              const syncRoute = calculateRouteSync(currentFrom, dest, tripType);
+                              setRouteDistanceKm(syncRoute.distanceKm);
+                              setRouteDistanceRange(syncRoute.distanceRange || null);
+                              setRouteDurationText(syncRoute.durationText || null);
+                              setRouteVia(syncRoute.routeVia || null);
+                            }}
+                            className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold transition cursor-pointer"
+                          >
+                            {city}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 pt-1">
