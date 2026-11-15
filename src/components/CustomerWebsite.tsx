@@ -110,6 +110,7 @@ export const CustomerWebsite: React.FC = () => {
   const [routeDistanceRange, setRouteDistanceRange] = useState<string | null>(null);
   const [routeDurationText, setRouteDurationText] = useState<string | null>(null);
   const [routeVia, setRouteVia] = useState<string | null>(null);
+  const [isOutstationRoute, setIsOutstationRoute] = useState(false);
   const [quotingFare, setQuotingFare] = useState(false);
   const [searchMessage, setSearchMessage] = useState('');
 
@@ -227,6 +228,7 @@ export const CustomerWebsite: React.FC = () => {
       setRouteDistanceRange(result.distance_range || null);
       setRouteDurationText(result.duration_text || null);
       setRouteVia(result.route_via || null);
+      setIsOutstationRoute(Boolean(result.is_outstation_route || (result.distance_km && result.distance_km > 45)));
 
       const matchingVeh = vehicles.find(v => Number(v.seats) >= currentPass && quoteMap[String(v._id || v.id)]);
       if (matchingVeh) {
@@ -470,37 +472,76 @@ export const CustomerWebsite: React.FC = () => {
     const isHycross = /hycross/i.test(veh.name);
     const isInnova = /innova/i.test(veh.name) || seats === 7;
     
-    // Market city drop per-km rates: 4-seater Sedan: ₹12/km, 6-seater Ertiga: ₹15/km, 7-seater Innova: ₹18/km, Hycross: ₹22/km
+    // Market per-km rates: 4-seater Sedan: ₹12/km, 6-seater Ertiga: ₹15/km, 7-seater Innova: ₹18/km, Hycross: ₹22/km
     const cityPerKmRate = isSedan ? 12 : isErtiga ? 15 : isHycross ? 22 : isInnova ? 18 : 24;
+    const defaultBata = isSedan ? 400 : isErtiga ? 450 : isHycross ? 550 : isInnova ? 500 : 600;
+    const isIntercity = Boolean(isOutstationRoute || quote?.is_outstation_route || (routeDistanceKm && routeDistanceKm > 45));
 
-    const baseFare = quote 
-      ? quote.fare 
-      : tripType === 'POINT_TO_POINT' && routeDistanceKm
-        ? Math.max(150, Math.round(routeDistanceKm * cityPerKmRate))
-        : (Number(veh.ratePerDay) || 2400);
+    let fare = quote?.fare;
+    let runningFare = quote?.running_fare || quote?.base_fare;
+    let driverAllowance = quote?.driver_allowance ?? (isIntercity ? defaultBata : 0);
 
-    const extraKmRate = quote?.extra_km_rate || (tripType === 'POINT_TO_POINT' ? cityPerKmRate : veh.ratePerKm || cityPerKmRate);
+    if (fare === undefined) {
+      if (tripType === 'POINT_TO_POINT' && routeDistanceKm) {
+        if (isIntercity) {
+          runningFare = Math.round(routeDistanceKm * cityPerKmRate);
+          driverAllowance = defaultBata;
+          fare = runningFare + driverAllowance;
+        } else {
+          runningFare = Math.max(isSedan ? 150 : 250, Math.round(routeDistanceKm * cityPerKmRate));
+          driverAllowance = 0;
+          fare = runningFare;
+        }
+      } else if (tripType === 'LOCAL') {
+        fare = isSedan ? 2200 : isErtiga ? 2800 : 3500;
+        runningFare = fare;
+        driverAllowance = 0;
+      } else if (tripType === 'AIRPORT') {
+        fare = isSedan ? 1400 : isErtiga ? 1800 : 2400;
+        runningFare = fare;
+        driverAllowance = 0;
+      } else {
+        // Outstation
+        const dist = Math.max(routeDistanceKm || 145, 250);
+        runningFare = Math.round(dist * cityPerKmRate);
+        driverAllowance = defaultBata;
+        fare = runningFare + driverAllowance;
+      }
+    }
+
+    if (!runningFare) {
+      runningFare = fare - driverAllowance;
+    }
+
+    const extraKmRate = quote?.extra_km_rate || cityPerKmRate;
     const extraHrRate = quote?.extra_hour_rate || (seats <= 4 ? 200 : seats <= 7 ? 250 : 400);
-    const minKmText = tripType === 'POINT_TO_POINT' 
-      ? 'Per-KM Drop' 
-      : tripType === 'OUTSTATION' 
-        ? '250 km / day' 
-        : tripType === 'LOCAL' 
-          ? '8 hrs / 80 km' 
-          : 'Direct transfer';
+    const minKmText = isIntercity 
+      ? 'Intercity One-Way' 
+      : tripType === 'POINT_TO_POINT' 
+        ? 'Per-KM Drop' 
+        : tripType === 'OUTSTATION' 
+          ? '250 km / day' 
+          : tripType === 'LOCAL' 
+            ? '8 hrs / 80 km' 
+            : 'Direct transfer';
 
     return {
-      fare: baseFare,
+      fare,
+      runningFare,
+      driverAllowance,
+      isIntercity,
       extraKmRate,
       extraHrRate,
       minKmText,
       cityPerKmRate,
       rateNote: quote?.rate_note || (
-        tripType === 'POINT_TO_POINT' 
-          ? `₹${extraKmRate}/km for ${veh.name} (Market rate city drop)` 
-          : tripType === 'LOCAL' 
-            ? 'Package fare (8 hrs / 80 km)' 
-            : 'Standard Karnataka commercial fare'
+        isIntercity
+          ? `₹${extraKmRate}/km • ${routeDistanceKm || 145} km + ₹${driverAllowance} Driver Bata`
+          : tripType === 'POINT_TO_POINT' 
+            ? `₹${extraKmRate}/km for ${veh.name} (Market rate city drop)` 
+            : tripType === 'LOCAL' 
+              ? 'Package fare (8 hrs / 80 km)' 
+              : 'Standard Karnataka commercial fare'
       )
     };
   };
@@ -1085,6 +1126,28 @@ export const CustomerWebsite: React.FC = () => {
               </div>
             )}
 
+            {/* Smart Banner: Intercity Outstation Route Detected */}
+            {isOutstationRoute && (
+              <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border border-blue-200/90 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-blue-950 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl shrink-0">📍</span>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-black text-blue-950 text-sm">
+                        Intercity Route Detected ({routeDistanceKm || 145} km)
+                      </p>
+                      <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                        Ola/Uber Outstation Pricing
+                      </span>
+                    </div>
+                    <p className="text-xs text-blue-800 mt-1 leading-relaxed">
+                      Route from <strong>{pickup}</strong> to <strong>{destination}</strong> is outside Bengaluru city limits ({routeVia || 'via Highway Corridor'}). Transparent commercial fare calculated with per-km running charge + Driver Allowance (Bata). Tolls (FASTag) as per actuals.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Vehicle Category Filter Pills */}
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
               {(tripType === 'POINT_TO_POINT' ? [
@@ -1198,19 +1261,27 @@ export const CustomerWebsite: React.FC = () => {
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between text-slate-500 text-[11px]">
                             <span>
-                              {tripType === 'POINT_TO_POINT' 
-                                ? 'City Drop Fare:' 
-                                : tripType === 'LOCAL' 
-                                  ? 'Package (8hr/80km):' 
-                                  : 'Base package:'}
+                              {breakdown.isIntercity
+                                ? `Running Fare (${routeDistanceKm || 145} km):`
+                                : tripType === 'POINT_TO_POINT' 
+                                  ? 'City Drop Fare:' 
+                                  : tripType === 'LOCAL' 
+                                    ? 'Package (8hr/80km):' 
+                                    : 'Base package:'}
                             </span>
-                            <span className="font-bold text-slate-800">₹{breakdown.fare.toLocaleString('en-IN')}</span>
+                            <span className="font-bold text-slate-800">₹{breakdown.runningFare.toLocaleString('en-IN')}</span>
                           </div>
+                          {breakdown.driverAllowance > 0 && (
+                            <div className="flex justify-between text-slate-500 text-[11px]">
+                              <span>Driver Bata:</span>
+                              <span className="font-bold text-slate-800">₹{breakdown.driverAllowance}</span>
+                            </div>
+                          )}
                           <div className="flex justify-between text-slate-500 text-[11px]">
-                            <span>{tripType === 'POINT_TO_POINT' ? 'Vehicle Rate / km:' : 'Extra km rate:'}</span>
+                            <span>Rate / km:</span>
                             <span className="font-bold text-emerald-700">₹{breakdown.extraKmRate} / km</span>
                           </div>
-                          {tripType !== 'POINT_TO_POINT' && (
+                          {tripType !== 'POINT_TO_POINT' && !breakdown.isIntercity && (
                             <div className="flex justify-between text-slate-500 text-[11px]">
                               <span>Extra hr / allowance:</span>
                               <span className="font-semibold text-slate-700">₹{breakdown.extraHrRate} / hr</span>
@@ -1220,13 +1291,17 @@ export const CustomerWebsite: React.FC = () => {
 
                         <div>
                           <div className="text-[10px] uppercase font-bold text-slate-400">
-                            {tripType === 'POINT_TO_POINT' ? 'Total Trip Fare' : 'Estimated Total'}
+                            Total Trip Fare
                           </div>
                           <div className="text-xl font-black text-[#ED1735]">
                             ₹{breakdown.fare.toLocaleString('en-IN')}
                           </div>
                           <div className="text-[9px] text-slate-400">
-                            {tripType === 'POINT_TO_POINT' ? `(${routeDistanceKm || 0} km @ ₹${breakdown.extraKmRate}/km)` : '(Illustrative fare)'}
+                            {breakdown.isIntercity
+                              ? `(${routeDistanceKm || 145} km @ ₹${breakdown.extraKmRate}/km + ₹${breakdown.driverAllowance} Driver Bata)`
+                              : tripType === 'POINT_TO_POINT' 
+                                ? `(${routeDistanceKm || 0} km @ ₹${breakdown.extraKmRate}/km)` 
+                                : '(Illustrative fare)'}
                           </div>
                         </div>
 
@@ -1476,15 +1551,25 @@ export const CustomerWebsite: React.FC = () => {
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2 text-xs">
                 <div className="flex justify-between items-center text-slate-600">
                   <span>
-                    {tripType === 'POINT_TO_POINT' ? 'City Drop Fare:' : `Package fare (${selectedBreakdown.minKmText})`}
+                    {selectedBreakdown.isIntercity
+                      ? `Running Distance Fare (${routeDistanceKm || 145} km):`
+                      : tripType === 'POINT_TO_POINT' 
+                        ? 'City Drop Fare:' 
+                        : `Package fare (${selectedBreakdown.minKmText})`}
                   </span>
-                  <span className="font-bold text-slate-800">₹{selectedBreakdown.fare.toLocaleString('en-IN')}</span>
+                  <span className="font-bold text-slate-800">₹{selectedBreakdown.runningFare.toLocaleString('en-IN')}</span>
                 </div>
+                {selectedBreakdown.driverAllowance > 0 && (
+                  <div className="flex justify-between items-center text-slate-600">
+                    <span>Driver Allowance (Outstation Bata):</span>
+                    <span className="font-bold text-slate-800">₹{selectedBreakdown.driverAllowance}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center text-slate-600">
                   <span>{tripType === 'POINT_TO_POINT' ? 'Vehicle Rate / km:' : 'Extra km (after limit)'}</span>
                   <span className="font-bold text-emerald-700">₹{selectedBreakdown.extraKmRate} / km</span>
                 </div>
-                {tripType !== 'POINT_TO_POINT' ? (
+                {tripType !== 'POINT_TO_POINT' && !selectedBreakdown.isIntercity ? (
                   <div className="flex justify-between items-center text-slate-600">
                     <span>Extra hour (after package)</span>
                     <span>₹{selectedBreakdown.extraHrRate} / hour</span>
@@ -1498,10 +1583,14 @@ export const CustomerWebsite: React.FC = () => {
                 <div className="pt-2 border-t border-slate-200 flex justify-between items-center">
                   <div>
                     <span className="font-black text-sm text-[#071B49] block">
-                      {tripType === 'POINT_TO_POINT' ? 'Total Trip Fare' : 'Estimated total'}
+                      Total Trip Fare
                     </span>
                     <span className="text-[10px] text-slate-400">
-                      {tripType === 'POINT_TO_POINT' ? `(${routeDistanceKm || 0} km @ ₹${selectedBreakdown.extraKmRate}/km)` : '(Illustrative fare)'}
+                      {selectedBreakdown.isIntercity
+                        ? `(${routeDistanceKm || 145} km @ ₹${selectedBreakdown.extraKmRate}/km + ₹${selectedBreakdown.driverAllowance} Driver Bata)`
+                        : tripType === 'POINT_TO_POINT'
+                          ? `(${routeDistanceKm || 0} km @ ₹${selectedBreakdown.extraKmRate}/km)`
+                          : '(Illustrative fare)'}
                     </span>
                   </div>
                   <span className="text-xl font-black text-[#ED1735]">
@@ -1509,7 +1598,7 @@ export const CustomerWebsite: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-[10px] text-slate-400 italic pt-1">
-                  ⓘ Final fare is calculated by SJT server and confirmed before booking confirmation. Tolls, state permits & parking at actuals.
+                  ⓘ Final fare calculated by SJT server. Tolls (FASTag) & parking at actuals.
                 </p>
               </div>
             )}

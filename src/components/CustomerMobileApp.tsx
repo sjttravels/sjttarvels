@@ -217,7 +217,11 @@ export const CustomerMobileApp: React.FC = () => {
       : 'CAR';
 
     const quoteFare = fareQuotes[String(vehicle.id || vehicle._id || name)]?.fare;
-    const fallbackCityFare = routeDistanceKm ? Math.max(150, Math.round(routeDistanceKm * cityPerKmRate)) : (isSedan ? 350 : 550);
+    const defaultBata = isSedan ? 400 : isErtiga ? 450 : isHycross ? 550 : isInnova ? 500 : 600;
+    const isIntercity = Boolean((routeDistanceKm && routeDistanceKm > 45) || fareQuotes[String(vehicle.id || vehicle._id || name)]?.is_outstation_route);
+    const fallbackCityFare = routeDistanceKm 
+      ? (isIntercity ? Math.round(routeDistanceKm * cityPerKmRate) + defaultBata : Math.max(isSedan ? 150 : 250, Math.round(routeDistanceKm * cityPerKmRate))) 
+      : (isSedan ? 350 : 550);
     const fare = quoteFare || (tripType === 'POINT_TO_POINT' ? fallbackCityFare : (Number(vehicle.ratePerDay) || 2400));
 
     return {
@@ -1267,7 +1271,11 @@ export const CustomerMobileApp: React.FC = () => {
                               ₹{veh.fare.toLocaleString('en-IN')}
                             </span>
                             <span className="text-[10px] text-slate-400">
-                              {tripType === 'POINT_TO_POINT' ? `(@ ₹${veh.cityPerKmRate || (veh.seats <= 4 ? 12 : 18)}/km)` : tripType === 'LOCAL' ? '8hr/80km' : 'One Way'}
+                              {tripType === 'POINT_TO_POINT' 
+                                ? (routeDistanceKm && routeDistanceKm > 45 
+                                    ? `(${routeDistanceKm} km + Bata)` 
+                                    : `(@ ₹${veh.cityPerKmRate || (veh.seats <= 4 ? 12 : 18)}/km)`) 
+                                : tripType === 'LOCAL' ? '8hr/80km' : 'One Way'}
                             </span>
                           </div>
                         </div>
