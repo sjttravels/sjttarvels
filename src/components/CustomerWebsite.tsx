@@ -1344,11 +1344,10 @@ export const CustomerWebsite: React.FC = () => {
                         setTripType('OUTSTATION');
                         fetchQuotes('OUTSTATION', pickup, destination, passengers);
                       }}
-                      className={`px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer ${
-                        tripType === 'OUTSTATION'
-                          ? 'bg-[#ED1735] text-white shadow-md'
-                          : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
-                      }`}
+                      className={`px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer ${tripType === 'OUTSTATION'
+                        ? 'bg-[#ED1735] text-white shadow-md'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
+                        }`}
                     >
                       One Way
                     </button>
@@ -1358,11 +1357,10 @@ export const CustomerWebsite: React.FC = () => {
                         setTripType('ROUND_TRIP');
                         fetchQuotes('ROUND_TRIP', pickup, destination, passengers);
                       }}
-                      className={`px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer ${
-                        tripType === 'ROUND_TRIP'
-                          ? 'bg-[#ED1735] text-white shadow-md'
-                          : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
-                      }`}
+                      className={`px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer ${tripType === 'ROUND_TRIP'
+                        ? 'bg-[#ED1735] text-white shadow-md'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
+                        }`}
                     >
                       Round Trip
                     </button>
@@ -3155,37 +3153,36 @@ export const CustomerWebsite: React.FC = () => {
       {/* ======================================================== */}
       {switchPromptModal?.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div 
+          <div
             className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-100 text-center relative overflow-hidden animate-in zoom-in-95 duration-200"
             role="dialog"
             aria-modal="true"
           >
             {/* Top pill badge */}
             <div className="flex justify-center mb-3">
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
-                switchPromptModal.type === 'OUTSTATION' 
-                  ? 'bg-amber-100 text-amber-900 border border-amber-200' 
-                  : switchPromptModal.type === 'AIRPORT'
-                    ? 'bg-blue-100 text-blue-900 border border-blue-200'
-                    : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
-              }`}>
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${switchPromptModal.type === 'OUTSTATION'
+                ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                : switchPromptModal.type === 'AIRPORT'
+                  ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                  : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                }`}>
                 {switchPromptModal.type === 'OUTSTATION' ? '🚗 Outstation Corridor' : switchPromptModal.type === 'AIRPORT' ? '✈️ Airport Corridor' : '🏙️ Intra-City Drop'}
               </span>
             </div>
 
             {/* Title matching Ola: "Book Ola Outstation" */}
             <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              {switchPromptModal.type === 'OUTSTATION' 
-                ? 'Book SJT Outstation' 
-                : switchPromptModal.type === 'AIRPORT' 
-                  ? 'Book Airport Transfer' 
+              {switchPromptModal.type === 'OUTSTATION'
+                ? 'Book SJT Outstation'
+                : switchPromptModal.type === 'AIRPORT'
+                  ? 'Book Airport Transfer'
                   : 'Book City Ride'}
             </h3>
 
             {/* Message matching Ola: "Drop location is outside city limits. Continue booking Outstation instead?" */}
             <p className="text-sm text-slate-600 mt-2.5 leading-relaxed font-medium">
-              {switchPromptModal.type === 'OUTSTATION' 
-                ? 'Drop location is outside city limits. Continue booking Outstation instead?' 
+              {switchPromptModal.type === 'OUTSTATION'
+                ? 'Drop location is outside city limits. Continue booking Outstation instead?'
                 : switchPromptModal.type === 'AIRPORT'
                   ? 'Drop location is Kempegowda International Airport. Continue booking dedicated Airport Transfer package instead?'
                   : 'Drop location is within Bengaluru city limits. Switch to City Ride for lower per-km pricing?'}
@@ -3237,10 +3234,10 @@ export const CustomerWebsite: React.FC = () => {
                 }}
                 className="w-full py-3 px-3 rounded-xl bg-[#ED1735] hover:bg-[#c91029] active:scale-98 text-white font-extrabold text-xs sm:text-sm transition-all cursor-pointer shadow-lg shadow-red-500/25"
               >
-                {switchPromptModal.type === 'OUTSTATION' 
-                  ? 'Change to Outstation' 
-                  : switchPromptModal.type === 'AIRPORT' 
-                    ? 'Change to Airport' 
+                {switchPromptModal.type === 'OUTSTATION'
+                  ? 'Change to Outstation'
+                  : switchPromptModal.type === 'AIRPORT'
+                    ? 'Change to Airport'
                     : 'Change to City Ride'}
               </button>
             </div>

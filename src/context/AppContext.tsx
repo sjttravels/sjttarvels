@@ -179,7 +179,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [bookings, setBookings] = useState<Booking[]>(() => {
     try {
       const saved = localStorage.getItem('sjt_bookings_list');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((b: any) =>
+            b && !String(b.id || '').startsWith('bkg_') &&
+            !['SJT-544066', 'SJT-987128', 'SJT-766173'].includes(b.bookingCode || b.booking_code) &&
+            !['Aravind Swaminathan', 'Test Passenger', 'Overlapping Customer', 'Vinay Kumar'].includes(b.customerName || b.customer_name)
+          );
+        }
+      }
     } catch {}
     return [];
   });
@@ -367,12 +376,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const contentType = res.headers.get('content-type') || '';
         if (res.ok && contentType.includes('application/json')) {
           const serverCreated = await res.json();
-          if (serverCreated && (serverCreated.booking_code || serverCreated.bookingCode)) {
+          if (serverCreated && (serverCreated.booking_code || serverCreated.bookingCode || serverCreated.id)) {
             Object.assign(newBooking, serverCreated);
           }
+        } else {
+          console.warn('Booking API non-OK or non-JSON response:', res.status, contentType);
         }
       } catch (err) {
-        // Safe client fallback
+        console.error('Failed to dispatch booking to backend API:', err);
       }
 
       const updated = [newBooking, ...bookings];
