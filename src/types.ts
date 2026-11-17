@@ -246,6 +246,18 @@ export interface Booking {
   created_at?: string;
   notes?: string;
   source?: 'WEBSITE' | 'CUSTOMER_APP' | 'ADMIN';
+  exactAddress?: string;
+  exact_address?: string;
+  cleanPickup?: string;
+  pickupLat?: number | null;
+  pickupLng?: number | null;
+  pickup_lat?: number | null;
+  pickup_lng?: number | null;
+  mapsDirUrl?: string;
+  mapsPinUrl?: string;
+  mapsDropUrl?: string;
+  pickupGoogleMapsUrl?: string;
+  pickup_google_maps_url?: string;
 }
 
 export interface CompanyDutyLog {

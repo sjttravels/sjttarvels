@@ -189,7 +189,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           );
         }
       }
-    } catch {}
+    } catch { }
     return [];
   });
   const [loading, setLoading] = useState<boolean>(false);
@@ -198,7 +198,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       const saved = localStorage.getItem('sjt_user');
       if (saved) return JSON.parse(saved);
-    } catch {}
+    } catch { }
     return null;
   });
 
@@ -217,7 +217,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setActiveTripOtp(freshOtp);
     try {
       localStorage.setItem('sjt_active_trip_otp', freshOtp);
-    } catch {}
+    } catch { }
     return freshOtp;
   }, []);
 
@@ -300,7 +300,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCurrentUser(user);
     try {
       localStorage.setItem('sjt_user', JSON.stringify(user));
-    } catch {}
+    } catch { }
     setLoginModalOpen(false);
     return user;
   };
@@ -316,7 +316,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCurrentUser(user);
     try {
       localStorage.setItem('sjt_user', JSON.stringify(user));
-    } catch {}
+    } catch { }
     setLoginModalOpen(false);
     return user;
   };
@@ -325,7 +325,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCurrentUser(null);
     try {
       localStorage.removeItem('sjt_user');
-    } catch {}
+    } catch { }
   };
 
   const createBooking = async (payload: Partial<Booking>): Promise<Booking> => {
@@ -392,7 +392,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         localStorage.setItem('sjt_bookings_list', JSON.stringify(updated.slice(0, 20)));
         localStorage.setItem('sjt_last_booking_code', newBooking.booking_code || newBooking.bookingCode);
         localStorage.setItem('sjt_active_trip_otp', freshOtp);
-      } catch {}
+      } catch { }
 
       return newBooking;
     } finally {
@@ -405,7 +405,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const next = prev.map(b => (b.id === id || b.bookingCode === id || b.booking_code === id ? { ...b, ...updates } : b));
       try {
         localStorage.setItem('sjt_bookings_list', JSON.stringify(next));
-      } catch {}
+      } catch { }
       return next;
     });
 
@@ -416,7 +416,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
       });
-    } catch {}
+    } catch { }
   };
 
   const refreshData = async () => {

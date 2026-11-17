@@ -18,6 +18,63 @@ function getPool() {
   return pool;
 }
 
+function parseLocationDetails(row) {
+  if (!row) return {};
+  let exactAddress = row.exact_address || row.exactAddress || '';
+  let pickupLat = row.pickup_lat ?? row.pickupLat ?? null;
+  let pickupLng = row.pickup_lng ?? row.pickupLng ?? null;
+  const notes = String(row.notes || '');
+
+  if (notes) {
+    const doorstepMatch = notes.match(/🏠\s*(?:Exact\s*Doorstep(?:\s*Address)?|Doorstep(?:\s*Address)?|Exact(?:\s*Address)?|Home(?:\s*Address)?):\s*([^|]+)/i);
+    if (doorstepMatch && !exactAddress) {
+      exactAddress = doorstepMatch[1].trim();
+    }
+    const gpsMatch = notes.match(/📍\s*GPS(?:\s*Pin)?:\s*([0-9.-]+)\s*,\s*([0-9.-]+)/i) ||
+                     notes.match(/query=([0-9.-]+)%2C([0-9.-]+)/i) ||
+                     notes.match(/query=([0-9.-]+),([0-9.-]+)/i) ||
+                     notes.match(/destination=([0-9.-]+),([0-9.-]+)/i);
+    if (gpsMatch && (pickupLat === null || pickupLng === null)) {
+      pickupLat = parseFloat(gpsMatch[1]);
+      pickupLng = parseFloat(gpsMatch[2]);
+    }
+  }
+
+  const cleanPickup = String(row.pickup || '')
+    .replace(/\(📍.*?\)/g, '')
+    .replace(/📍/g, '')
+    .replace(/Live GPS/gi, '')
+    .trim();
+
+  let mapsDirUrl = '';
+  let mapsPinUrl = '';
+
+  if (pickupLat !== null && pickupLng !== null && !isNaN(pickupLat) && !isNaN(pickupLng)) {
+    mapsDirUrl = `https://www.google.com/maps/dir/?api=1&destination=${pickupLat},${pickupLng}`;
+    mapsPinUrl = `https://www.google.com/maps/search/?api=1&query=${pickupLat},${pickupLng}`;
+  } else {
+    const target = exactAddress ? `${exactAddress}, ${cleanPickup}` : cleanPickup;
+    mapsDirUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(target)}`;
+    mapsPinUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(target)}`;
+  }
+
+  const cleanDestination = String(row.destination || '')
+    .replace(/\(📍.*?\)/g, '')
+    .replace(/📍/g, '')
+    .trim();
+  const mapsDropUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(cleanDestination)}`;
+
+  return {
+    exactAddress,
+    cleanPickup,
+    pickupLat,
+    pickupLng,
+    mapsDirUrl,
+    mapsPinUrl,
+    mapsDropUrl
+  };
+}
+
 // Convert row keys to both snake_case and camelCase
 function formatBooking(row) {
   if (!row) return null;
@@ -55,6 +112,21 @@ function formatBooking(row) {
   b.actualKm = Number(row.actual_km ?? row.actualKm ?? 0);
   b.createdAt = row.created_at;
   b.updatedAt = row.updated_at;
+
+  const loc = parseLocationDetails(row);
+  b.exactAddress = loc.exactAddress;
+  b.exact_address = loc.exactAddress;
+  b.cleanPickup = loc.cleanPickup;
+  b.pickupLat = loc.pickupLat;
+  b.pickupLng = loc.pickupLng;
+  b.pickup_lat = loc.pickupLat;
+  b.pickup_lng = loc.pickupLng;
+  b.mapsDirUrl = loc.mapsDirUrl;
+  b.mapsPinUrl = loc.mapsPinUrl;
+  b.mapsDropUrl = loc.mapsDropUrl;
+  b.pickupGoogleMapsUrl = loc.mapsPinUrl;
+  b.pickup_google_maps_url = loc.mapsPinUrl;
+
   return b;
 }
 
@@ -523,7 +595,16 @@ export default async function handler(req, res) {
       const paymentMethod = body.paymentMethod || body.payment_method || 'CASH';
       const paymentStatus = body.paymentStatus || body.payment_status || 'PENDING';
       const status = body.status || 'CONFIRMED';
-      const notes = body.notes || '';
+      const exactAddress = body.exactAddress || body.exact_address || '';
+      const pickupLat = body.pickupLat ?? body.pickup_lat ?? null;
+      const pickupLng = body.pickupLng ?? body.pickup_lng ?? null;
+      let notes = body.notes || '';
+      if (exactAddress && !notes.includes('🏠')) {
+        notes = `🏠 Exact Doorstep Address: ${exactAddress}` + (notes ? ` | ${notes}` : '');
+      }
+      if (pickupLat && pickupLng && !notes.includes('📍 GPS:')) {
+        notes = `📍 GPS: ${pickupLat},${pickupLng} | 🧭 Navigation: https://www.google.com/maps/dir/?api=1&destination=${pickupLat},${pickupLng}` + (notes ? ` | ${notes}` : '');
+      }
 
       const query = `
         INSERT INTO bookings (

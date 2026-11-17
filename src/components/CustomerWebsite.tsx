@@ -41,7 +41,8 @@ import {
   Smartphone,
   ExternalLink,
   Shield,
-  Zap
+  Zap,
+  Home
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { LocationSuggestionField } from './LocationSuggestionField';
@@ -93,9 +94,12 @@ export const CustomerWebsite: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Live Location & Google Maps
+  // Live Location & Exact Doorstep Address
   const [liveLocationLoading, setLiveLocationLoading] = useState(false);
   const [pickupGoogleMapsUrl, setPickupGoogleMapsUrl] = useState('');
+  const [exactAddress, setExactAddress] = useState('');
+  const [pickupLat, setPickupLat] = useState<number | null>(null);
+  const [pickupLng, setPickupLng] = useState<number | null>(null);
 
   // Live Tracking Modal State
   const [trackingModalOpen, setTrackingModalOpen] = useState(false);
@@ -172,26 +176,43 @@ export const CustomerWebsite: React.FC = () => {
       async (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
+        setPickupLat(lat);
+        setPickupLng(lng);
         const mapsLink = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
         setPickupGoogleMapsUrl(mapsLink);
 
         let locationName = `Live Location (${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E)`;
+        let suggestedDoorstep = '';
+
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 2500);
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
-            signal: controller.signal
+          const timeoutId = setTimeout(() => controller.abort(), 3500);
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`, {
+            signal: controller.signal,
+            headers: { 'User-Agent': 'SJT-Travels-Cabs/1.0' }
           });
           clearTimeout(timeoutId);
           if (res.ok) {
             const data = await res.json();
-            const road = data.address?.road || data.address?.suburb || data.address?.neighbourhood || '';
-            const city = data.address?.city || data.address?.town || data.address?.county || 'Bengaluru';
-            const state = data.address?.state || 'Karnataka';
-            if (road) {
-              locationName = `${road}, ${city}, ${state} (📍 Live GPS)`;
-            } else {
-              locationName = `${city}, ${state} (📍 Live GPS)`;
+            const addr = data.address || {};
+            const road = addr.road || addr.street || '';
+            const suburb = addr.suburb || addr.neighbourhood || addr.subdistrict || addr.residential || '';
+            const city = addr.city || addr.town || addr.county || 'Bengaluru';
+            const state = addr.state || 'Karnataka';
+
+            const localityParts = [suburb || road || 'Near Live Location', city, state].filter(Boolean);
+            const cleanLocality = localityParts.filter((v, i, a) => a.indexOf(v) === i).join(', ');
+            locationName = `${cleanLocality} (📍 Live GPS)`;
+
+            const doorParts = [
+              addr.house_number ? `House #${addr.house_number}` : '',
+              addr.building || '',
+              road ? `${road}` : '',
+              suburb ? `${suburb}` : '',
+              addr.postcode ? `PIN: ${addr.postcode}` : ''
+            ].filter(Boolean);
+            if (doorParts.length > 0) {
+              suggestedDoorstep = doorParts.join(', ');
             }
           }
         } catch {
@@ -199,6 +220,9 @@ export const CustomerWebsite: React.FC = () => {
         }
 
         setPickup(locationName);
+        if (suggestedDoorstep && !exactAddress.trim()) {
+          setExactAddress(suggestedDoorstep);
+        }
         setLiveLocationLoading(false);
         if (destination.trim()) {
           fetchQuotes(tripType, locationName, destination, passengers);
@@ -505,16 +529,38 @@ export const CustomerWebsite: React.FC = () => {
 
     setSubmittingBooking(true);
     try {
-      const mapsLink = pickupGoogleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pickup.trim())}`;
-      const notesWithMap = notes.trim()
-        ? `${notes.trim()} | 📍 Driver Google Maps: ${mapsLink}`
-        : `📍 Driver Google Maps: ${mapsLink}`;
+      const cleanPick = pickup.replace(/\(📍.*?\)/g, '').replace(/📍/g, '').trim();
+      const doorstepText = exactAddress.trim();
+      const combinedPickup = doorstepText ? `${doorstepText}, ${cleanPick}` : cleanPick;
+
+      const mapsDir = pickupLat && pickupLng
+        ? `https://www.google.com/maps/dir/?api=1&destination=${pickupLat},${pickupLng}`
+        : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(combinedPickup)}`;
+
+      const mapsPin = pickupLat && pickupLng
+        ? `https://www.google.com/maps/search/?api=1&query=${pickupLat},${pickupLng}`
+        : (pickupGoogleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(combinedPickup)}`);
+
+      const noteParts: string[] = [];
+      if (doorstepText) {
+        noteParts.push(`🏠 Exact Doorstep Address: ${doorstepText}`);
+      }
+      if (pickupLat && pickupLng) {
+        noteParts.push(`📍 GPS: ${pickupLat},${pickupLng}`);
+        noteParts.push(`🧭 Navigation: ${mapsDir}`);
+      } else {
+        noteParts.push(`📍 Driver Google Maps: ${mapsPin}`);
+      }
+      if (notes.trim()) {
+        noteParts.push(`📝 Notes: ${notes.trim()}`);
+      }
+      const finalNotes = noteParts.join(' | ');
 
       const created = await createBooking({
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim(),
         customerEmail: customerEmail.trim() || undefined,
-        pickup: pickup.trim(),
+        pickup: combinedPickup,
         destination: destination.trim(),
         journeyDate,
         returnDate: tripType === 'ROUND_TRIP' ? returnDate : undefined,
@@ -524,8 +570,11 @@ export const CustomerWebsite: React.FC = () => {
         vehicleName: selectedVehicle.name,
         passengers,
         quotedAmount: finalFare,
-        notes: notesWithMap
-      });
+        notes: finalNotes,
+        exact_address: doorstepText,
+        pickup_lat: pickupLat,
+        pickup_lng: pickupLng
+      } as any);
 
       setConfirmedBooking(created);
       if (created?.booking_code) {
@@ -920,14 +969,15 @@ export const CustomerWebsite: React.FC = () => {
                   />
                   {pickupGoogleMapsUrl && (
                     <div className="mt-1 flex items-center justify-between text-[10px] text-emerald-800 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">
-                      <span className="flex items-center gap-1">
-                        <Check className="w-3 h-3 text-emerald-600" /> GPS Captured for Maps
+                      <span className="flex items-center gap-1 truncate">
+                        <Check className="w-3 h-3 text-emerald-600 shrink-0" />
+                        <span>GPS Pin: {pickupLat && pickupLng ? `${pickupLat.toFixed(4)}°N, ${pickupLng.toFixed(4)}°E` : 'Live Coordinates'}</span>
                       </span>
                       <a
                         href={pickupGoogleMapsUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-blue-600 hover:underline flex items-center gap-0.5 font-bold"
+                        className="text-blue-600 hover:underline flex items-center gap-0.5 font-bold shrink-0 ml-1.5"
                       >
                         Pin <ExternalLink className="w-2.5 h-2.5" />
                       </a>
@@ -1634,6 +1684,17 @@ export const CustomerWebsite: React.FC = () => {
                 </strong>
               </div>
 
+              {exactAddress.trim() && (
+                <div className="flex justify-between items-start pb-1.5 border-b border-slate-200/80">
+                  <span className="text-amber-800 font-bold flex items-center gap-1.5 shrink-0">
+                    <Home className="w-3.5 h-3.5 text-amber-600" /> Doorstep / Home
+                  </span>
+                  <strong className="text-right max-w-[220px] text-amber-900 break-words">
+                    {exactAddress.trim()}
+                  </strong>
+                </div>
+              )}
+
               <div className="flex justify-between items-center pb-1.5 border-b border-slate-200/80">
                 <span className="text-slate-500 flex items-center gap-1.5 shrink-0">
                   <MapPin className="w-3.5 h-3.5 text-emerald-600" /> Destination
@@ -1757,6 +1818,47 @@ export const CustomerWebsite: React.FC = () => {
                       className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#071B49] focus:outline-none"
                     />
                   </div>
+                </div>
+
+                {/* Exact Doorstep / Home Address & Landmark (Like Ola Cabs) */}
+                <div className="bg-amber-50/70 border border-amber-200/90 rounded-2xl p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                      <Home className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Exact House / Flat No., Building & Landmark *</span>
+                    </label>
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-100/90 px-2 py-0.5 rounded-full">
+                      Driver Doorstep GPS
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={exactAddress}
+                    onChange={e => setExactAddress(e.target.value)}
+                    placeholder="e.g. Flat 302, SLV Residency, 4th Cross Road, Opp. Canara Bank"
+                    required
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-amber-300 bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none placeholder-slate-400"
+                  />
+                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                    <span className="text-[10px] text-amber-800 font-semibold">Quick Tag:</span>
+                    {['🏠 Home', '🏢 Office', '📍 Main Gate', '🏨 Hotel', '🏥 Hospital'].map(tag => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => {
+                          if (!exactAddress.includes(tag)) {
+                            setExactAddress(prev => prev ? `${tag}: ${prev}` : `${tag} - `);
+                          }
+                        }}
+                        className="px-2 py-0.5 text-[10px] font-medium bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-md transition-colors cursor-pointer"
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-amber-800 flex items-center gap-1">
+                    <span>🧭</span> Ola/Uber style doorstep guidance: Driver GPS opens navigation directly to this house/gate.
+                  </p>
                 </div>
 
                 <div>
