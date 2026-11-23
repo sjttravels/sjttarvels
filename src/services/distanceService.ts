@@ -1,5 +1,5 @@
-// Comprehensive Karnataka & South India Geocoding & Road Distance Engine
-// Provides Google Maps / Ola / Uber precision for City and Outstation routes
+// Comprehensive All-India & South India Geocoding, OSRM & Road Distance Engine
+// Provides Google Maps / Ola / Uber precision for City, Airport and Outstation routes across India
 
 export interface RouteInfo {
   distanceKm: number;
@@ -102,8 +102,6 @@ export const KNOWN_COORDINATES: Record<string, { lat: number; lng: number }> = {
   'coorg': { lat: 12.4244, lng: 75.7382 },
   'madikeri': { lat: 12.4244, lng: 75.7382 },
   'kushalnagar': { lat: 12.4554, lng: 75.9609 },
-  'ooty': { lat: 11.4102, lng: 76.6950 },
-  'coonoor': { lat: 11.3530, lng: 76.7959 },
   'chikmagalur': { lat: 13.3161, lng: 75.7720 },
   'chikkamagaluru': { lat: 13.3161, lng: 75.7720 },
   'mullayanagiri': { lat: 13.3917, lng: 75.7214 },
@@ -112,7 +110,6 @@ export const KNOWN_COORDINATES: Record<string, { lat: number; lng: number }> = {
   'belur': { lat: 13.1623, lng: 75.8576 },
   'halebeedu': { lat: 13.2163, lng: 75.9922 },
   'shravanabelagola': { lat: 12.8569, lng: 76.4862 },
-  'tirupati': { lat: 13.6288, lng: 79.4192 },
   'hampi': { lat: 15.3350, lng: 76.4600 },
   'hospet': { lat: 15.2689, lng: 76.3909 },
   'hosapete': { lat: 15.2689, lng: 76.3909 },
@@ -140,13 +137,175 @@ export const KNOWN_COORDINATES: Record<string, { lat: number; lng: number }> = {
   'hubli': { lat: 15.3647, lng: 75.1240 },
   'belagavi': { lat: 15.8497, lng: 74.4977 },
   'belgaum': { lat: 15.8497, lng: 74.4977 },
-  'wayanad': { lat: 11.6854, lng: 76.1320 },
-  'pondicherry': { lat: 11.9416, lng: 79.8083 },
+  'badami': { lat: 15.9189, lng: 75.6766 },
+  'pattadakal': { lat: 15.9493, lng: 75.8160 },
+  'aihole': { lat: 16.0203, lng: 75.8820 },
+  'bijapur': { lat: 16.8302, lng: 75.7100 },
+  'vijayapura': { lat: 16.8302, lng: 75.7100 },
+  'bidar': { lat: 17.9104, lng: 77.5199 },
+  'kalaburagi': { lat: 17.3297, lng: 76.8343 },
+  'gulbarga': { lat: 17.3297, lng: 76.8343 },
+  'raichur': { lat: 16.2120, lng: 77.3439 },
+  'karwar': { lat: 14.8136, lng: 74.1298 },
+  'sirsi': { lat: 14.6195, lng: 74.8354 },
+  'dandeli': { lat: 15.2361, lng: 74.6173 },
+  'sringeri': { lat: 13.4189, lng: 75.2560 },
+  'horanadu': { lat: 13.2725, lng: 75.3422 },
+
+  // --- TAMIL NADU OUTSTATION HUBS & PILGRIMAGE ---
+  'rameshwaram': { lat: 9.2876, lng: 79.3129 },
+  'rameswaram': { lat: 9.2876, lng: 79.3129 },
+  'ramanathapuram': { lat: 9.3639, lng: 78.8395 },
+  'madurai': { lat: 9.9252, lng: 78.1198 },
+  'kanyakumari': { lat: 8.0883, lng: 77.5385 },
   'chennai': { lat: 13.0827, lng: 80.2707 },
+  'salem': { lat: 11.6643, lng: 78.1460 },
   'coimbatore': { lat: 11.0168, lng: 76.9558 },
+  'trichy': { lat: 10.7905, lng: 78.7047 },
+  'tiruchirappalli': { lat: 10.7905, lng: 78.7047 },
+  'tirunelveli': { lat: 8.7139, lng: 77.7567 },
+  'thanjavur': { lat: 10.7870, lng: 79.1378 },
+  'tanjore': { lat: 10.7870, lng: 79.1378 },
+  'kumbakonam': { lat: 10.9602, lng: 79.3845 },
+  'velankanni': { lat: 10.6800, lng: 79.8400 },
+  'kodaikanal': { lat: 10.2381, lng: 77.4892 },
+  'palani': { lat: 10.4500, lng: 77.5200 },
+  'tiruvannamalai': { lat: 12.2253, lng: 79.0747 },
+  'vellore': { lat: 12.9165, lng: 79.1325 },
+  'hosur': { lat: 12.7409, lng: 77.8253 },
+  'krishnagiri': { lat: 12.5186, lng: 78.2137 },
+  'dharmapuri': { lat: 12.1211, lng: 78.1582 },
+  'erode': { lat: 11.3410, lng: 77.7172 },
+  'tirupur': { lat: 11.1085, lng: 77.3411 },
+  'dindigul': { lat: 10.3673, lng: 77.9803 },
+  'karur': { lat: 10.9601, lng: 78.0766 },
+  'namakkal': { lat: 11.2189, lng: 78.1674 },
+  'yelagiri': { lat: 12.5794, lng: 78.6389 },
+  'courtallam': { lat: 8.9300, lng: 77.2700 },
+  'tenkasi': { lat: 8.9594, lng: 77.3150 },
+  'thoothukudi': { lat: 8.7642, lng: 78.1348 },
+  'tuticorin': { lat: 8.7642, lng: 78.1348 },
+  'chidambaram': { lat: 11.3992, lng: 79.6934 },
+  'nagapattinam': { lat: 10.7672, lng: 79.8449 },
+  'cuddalore': { lat: 11.7480, lng: 79.7714 },
+  'villupuram': { lat: 11.9401, lng: 79.4861 },
+  'theni': { lat: 10.0104, lng: 77.4768 },
+  'kanchipuram': { lat: 12.8342, lng: 79.7036 },
+  'mahabalipuram': { lat: 12.6269, lng: 80.1927 },
+  'mamallapuram': { lat: 12.6269, lng: 80.1927 },
+  'ooty': { lat: 11.4102, lng: 76.6950 },
+  'coonoor': { lat: 11.3530, lng: 76.7959 },
+  'kotagiri': { lat: 11.4200, lng: 76.8800 },
+  'pondicherry': { lat: 11.9416, lng: 79.8083 },
+  'puducherry': { lat: 11.9416, lng: 79.8083 },
+
+  // --- KERALA OUTSTATION HUBS ---
+  'munnar': { lat: 10.0889, lng: 77.0595 },
+  'kochi': { lat: 9.9312, lng: 76.2673 },
+  'cochin': { lat: 9.9312, lng: 76.2673 },
+  'ernakulam': { lat: 9.9816, lng: 76.2999 },
+  'alleppey': { lat: 9.4981, lng: 76.3388 },
+  'alappuzha': { lat: 9.4981, lng: 76.3388 },
+  'wayanad': { lat: 11.6854, lng: 76.1320 },
+  'sulthan bathery': { lat: 11.6622, lng: 76.2570 },
+  'kalpetta': { lat: 11.6050, lng: 76.0830 },
+  'kozhikode': { lat: 11.2588, lng: 75.7804 },
+  'calicut': { lat: 11.2588, lng: 75.7804 },
+  'thiruvananthapuram': { lat: 8.5241, lng: 76.9366 },
+  'trivandrum': { lat: 8.5241, lng: 76.9366 },
+  'thekkady': { lat: 9.6031, lng: 77.1615 },
+  'kumily': { lat: 9.6031, lng: 77.1615 },
+  'varkala': { lat: 8.7379, lng: 76.7163 },
+  'kovalam': { lat: 8.4004, lng: 76.9787 },
+  'kumarakom': { lat: 9.6175, lng: 76.4301 },
+  'thrissur': { lat: 10.5276, lng: 76.2144 },
+  'trichur': { lat: 10.5276, lng: 76.2144 },
+  'palakkad': { lat: 10.7867, lng: 76.6548 },
+  'kannur': { lat: 11.8745, lng: 75.3704 },
+  'kasaragod': { lat: 12.4996, lng: 74.9869 },
+  'bekal': { lat: 12.3926, lng: 75.0328 },
+  'kollam': { lat: 8.8932, lng: 76.6141 },
+  'guruvayur': { lat: 10.5946, lng: 76.0417 },
+  'sabarimala': { lat: 9.4402, lng: 77.0818 },
+  'athirappilly': { lat: 10.3150, lng: 76.5400 },
+  'vagamon': { lat: 9.6894, lng: 76.9056 },
+  'kottayam': { lat: 9.5916, lng: 76.5222 },
+
+  // --- ANDHRA PRADESH & TELANGANA ---
+  'hyderabad': { lat: 17.3850, lng: 78.4867 },
+  'secunderabad': { lat: 17.4399, lng: 78.4983 },
+  'tirupati': { lat: 13.6288, lng: 79.4192 },
+  'tirumala': { lat: 13.6833, lng: 79.3500 },
+  'vijayawada': { lat: 16.5062, lng: 80.6480 },
+  'visakhapatnam': { lat: 17.6868, lng: 83.2185 },
+  'vizag': { lat: 17.6868, lng: 83.2185 },
+  'kurnool': { lat: 15.8281, lng: 78.0373 },
+  'anantapur': { lat: 14.6819, lng: 77.6006 },
+  'chittoor': { lat: 13.2172, lng: 79.1003 },
+  'kadapa': { lat: 14.4673, lng: 78.8242 },
+  'cuddapah': { lat: 14.4673, lng: 78.8242 },
+  'nellore': { lat: 14.4426, lng: 79.9865 },
+  'guntur': { lat: 16.3067, lng: 80.4365 },
+  'rajahmundry': { lat: 17.0005, lng: 81.8040 },
+  'warangal': { lat: 17.9689, lng: 79.5941 },
+  'srisailam': { lat: 16.0737, lng: 78.8686 },
+  'lepakshi': { lat: 13.8039, lng: 77.6062 },
+  'puttaparthi': { lat: 14.1680, lng: 77.8100 },
+  'mantralayam': { lat: 15.9385, lng: 77.4277 },
+  'ahobilam': { lat: 15.1378, lng: 78.7289 },
+  'kanipakam': { lat: 13.2500, lng: 79.0300 },
+  'kalahasti': { lat: 13.7500, lng: 79.7000 },
+  'srikalahasti': { lat: 13.7500, lng: 79.7000 },
+  'amaravati': { lat: 16.5735, lng: 80.3575 },
+  'hindupur': { lat: 13.8290, lng: 77.4930 },
+
+  // --- GOA & MAHARASHTRA ---
   'goa': { lat: 15.4909, lng: 73.8278 },
   'panaji': { lat: 15.4909, lng: 73.8278 },
-  'hyderabad': { lat: 17.3850, lng: 78.4867 }
+  'panjim': { lat: 15.4909, lng: 73.8278 },
+  'calangute': { lat: 15.5439, lng: 73.7553 },
+  'baga': { lat: 15.5553, lng: 73.7517 },
+  'candolim': { lat: 15.5178, lng: 73.7667 },
+  'anjuna': { lat: 15.5733, lng: 73.7410 },
+  'vagator': { lat: 15.5997, lng: 73.7439 },
+  'morjim': { lat: 15.6277, lng: 73.7375 },
+  'margao': { lat: 15.2832, lng: 73.9862 },
+  'madgaon': { lat: 15.2832, lng: 73.9862 },
+  'colva': { lat: 15.2786, lng: 73.9142 },
+  'benaulim': { lat: 15.2575, lng: 73.9214 },
+  'palolem': { lat: 15.0100, lng: 74.0232 },
+  'vasco da gama': { lat: 15.3982, lng: 73.8113 },
+  'mumbai': { lat: 19.0760, lng: 72.8777 },
+  'pune': { lat: 18.5204, lng: 73.8567 },
+  'shirdi': { lat: 19.7645, lng: 74.4762 },
+  'nashik': { lat: 19.9975, lng: 73.7898 },
+  'kolhapur': { lat: 16.7050, lng: 74.2433 },
+  'solapur': { lat: 17.6599, lng: 75.9064 },
+  'mahabaleshwar': { lat: 17.9307, lng: 73.6477 },
+  'lonavala': { lat: 18.7557, lng: 73.4091 },
+  'khandala': { lat: 18.7610, lng: 73.3760 },
+  'aurangabad': { lat: 19.8762, lng: 75.3433 },
+  'sambhajinagar': { lat: 19.8762, lng: 75.3433 },
+  'nagpur': { lat: 21.1458, lng: 79.0882 },
+  'alibaug': { lat: 18.6414, lng: 72.8722 },
+  'satara': { lat: 17.6805, lng: 73.9930 },
+
+  // --- PAN-INDIA HUBS ---
+  'delhi': { lat: 28.6139, lng: 77.2090 },
+  'new delhi': { lat: 28.6139, lng: 77.2090 },
+  'agra': { lat: 27.1767, lng: 78.0081 },
+  'jaipur': { lat: 26.9124, lng: 75.7873 },
+  'udaipur': { lat: 24.5854, lng: 73.7125 },
+  'jodhpur': { lat: 26.2389, lng: 73.0243 },
+  'varanasi': { lat: 25.3176, lng: 82.9739 },
+  'ayodhya': { lat: 26.7922, lng: 82.1998 },
+  'ahmedabad': { lat: 23.0225, lng: 72.5714 },
+  'surat': { lat: 21.1702, lng: 72.8311 },
+  'indore': { lat: 22.7196, lng: 75.8577 },
+  'bhopal': { lat: 23.2599, lng: 77.4126 },
+  'kolkata': { lat: 22.5726, lng: 88.3639 },
+  'bhubaneswar': { lat: 20.2961, lng: 85.8245 },
+  'puri': { lat: 19.8135, lng: 85.8312 }
 };
 
 // Verified Ground Distances & Durations for Primary Routes
@@ -223,28 +382,96 @@ export const VERIFIED_HIGHWAY_PAIRS: Record<string, { km: number; durationText: 
   'electronic city_airport': { km: 54, durationText: '~1 hr 20 mins', via: 'via Elevated Tollway & Airport Expressway' },
   'majestic_airport': { km: 33, durationText: '~50 mins', via: 'via Bellary Road' },
 
-  // Other Major Outstations
-  'bengaluru_coorg': { km: 250, durationText: '~5 hr 30 mins', via: 'via Mysore Expressway & Kushalnagar' },
-  'bangalore_coorg': { km: 250, durationText: '~5 hr 30 mins', via: 'via Mysore Expressway & Kushalnagar' },
+  // --- TAMIL NADU PRIMARY CORRIDORS (VERIFIED) ---
+  'bengaluru_rameshwaram': { km: 600, durationText: '~10 hr 45 mins', via: 'via NH 44 (Salem - Madurai) & NH 87 (Pamban Bridge)' },
+  'bangalore_rameshwaram': { km: 600, durationText: '~10 hr 45 mins', via: 'via NH 44 (Salem - Madurai) & NH 87 (Pamban Bridge)' },
+  'uttarahalli_rameshwaram': { km: 605, durationText: '~10 hr 50 mins', via: 'via NH 44 (Salem - Madurai) & NH 87 (Pamban Bridge)' },
+  'bengaluru_rameswaram': { km: 600, durationText: '~10 hr 45 mins', via: 'via NH 44 (Salem - Madurai) & NH 87 (Pamban Bridge)' },
+  'bangalore_rameswaram': { km: 600, durationText: '~10 hr 45 mins', via: 'via NH 44 (Salem - Madurai) & NH 87 (Pamban Bridge)' },
+  'uttarahalli_rameswaram': { km: 605, durationText: '~10 hr 50 mins', via: 'via NH 44 (Salem - Madurai) & NH 87 (Pamban Bridge)' },
+  'bengaluru_madurai': { km: 435, durationText: '~7 hr 15 mins', via: 'via NH 44 (Hosur - Salem - Dindigul)' },
+  'bangalore_madurai': { km: 435, durationText: '~7 hr 15 mins', via: 'via NH 44 (Hosur - Salem - Dindigul)' },
+  'bengaluru_kanyakumari': { km: 665, durationText: '~11 hrs', via: 'via NH 44 South Corridor' },
+  'bangalore_kanyakumari': { km: 665, durationText: '~11 hrs', via: 'via NH 44 South Corridor' },
+  'bengaluru_chennai': { km: 345, durationText: '~6 hr 30 mins', via: 'via NH 48 (Hosur - Krishnagiri - Vellore)' },
+  'bangalore_chennai': { km: 345, durationText: '~6 hr 30 mins', via: 'via NH 48 (Hosur - Krishnagiri - Vellore)' },
+  'bengaluru_salem': { km: 205, durationText: '~3 hr 30 mins', via: 'via NH 44' },
+  'bangalore_salem': { km: 205, durationText: '~3 hr 30 mins', via: 'via NH 44' },
+  'bengaluru_coimbatore': { km: 365, durationText: '~6 hrs', via: 'via NH 44 & NH 544' },
+  'bangalore_coimbatore': { km: 365, durationText: '~6 hrs', via: 'via NH 44 & NH 544' },
+  'bengaluru_trichy': { km: 340, durationText: '~5 hr 45 mins', via: 'via NH 44 & NH 81' },
+  'bangalore_trichy': { km: 340, durationText: '~5 hr 45 mins', via: 'via NH 44 & NH 81' },
+  'bengaluru_tirunelveli': { km: 580, durationText: '~9 hrs', via: 'via NH 44' },
+  'bangalore_tirunelveli': { km: 580, durationText: '~9 hrs', via: 'via NH 44' },
+  'bengaluru_thanjavur': { km: 395, durationText: '~6 hr 30 mins', via: 'via NH 44 & NH 81' },
+  'bangalore_thanjavur': { km: 395, durationText: '~6 hr 30 mins', via: 'via NH 44 & NH 81' },
+  'bengaluru_kumbakonam': { km: 390, durationText: '~6 hr 30 mins', via: 'via NH 44 & NH 81' },
+  'bangalore_kumbakonam': { km: 390, durationText: '~6 hr 30 mins', via: 'via NH 44 & NH 81' },
+  'bengaluru_velankanni': { km: 480, durationText: '~8 hr 30 mins', via: 'via NH 44 & NH 83' },
+  'bangalore_velankanni': { km: 480, durationText: '~8 hr 30 mins', via: 'via NH 44 & NH 83' },
+  'bengaluru_kodaikanal': { km: 465, durationText: '~8 hrs', via: 'via NH 44 & Dindigul Ghat' },
+  'bangalore_kodaikanal': { km: 465, durationText: '~8 hrs', via: 'via NH 44 & Dindigul Ghat' },
+  'bengaluru_tiruvannamalai': { km: 200, durationText: '~3 hr 45 mins', via: 'via Krishnagiri & Chengam' },
+  'bangalore_tiruvannamalai': { km: 200, durationText: '~3 hr 45 mins', via: 'via Krishnagiri & Chengam' },
+  'bengaluru_vellore': { km: 215, durationText: '~3 hr 45 mins', via: 'via NH 48' },
+  'bangalore_vellore': { km: 215, durationText: '~3 hr 45 mins', via: 'via NH 48' },
+  'bengaluru_hosur': { km: 40, durationText: '~1 hr', via: 'via Hosur Road NH 44' },
+  'bengaluru_krishnagiri': { km: 90, durationText: '~1 hr 45 mins', via: 'via NH 44' },
+  'bengaluru_dharmapuri': { km: 140, durationText: '~2 hr 30 mins', via: 'via NH 44' },
+  'bengaluru_erode': { km: 265, durationText: '~4 hr 30 mins', via: 'via NH 44 & NH 544' },
+  'bengaluru_tirupur': { km: 315, durationText: '~5 hrs', via: 'via NH 44 & NH 544' },
+  'bengaluru_pondicherry': { km: 310, durationText: '~6 hr 30 mins', via: 'via Krishnagiri' },
+  'bangalore_pondicherry': { km: 310, durationText: '~6 hr 30 mins', via: 'via Krishnagiri' },
   'bengaluru_ooty': { km: 275, durationText: '~6 hrs', via: 'via Mysore & Bandipur Forest Corridor' },
   'bangalore_ooty': { km: 275, durationText: '~6 hrs', via: 'via Mysore & Bandipur Forest Corridor' },
-  'bengaluru_chikmagalur': { km: 245, durationText: '~4 hr 45 mins', via: 'via NH 75 Hassan Highway' },
-  'bangalore_chikmagalur': { km: 245, durationText: '~4 hr 45 mins', via: 'via NH 75 Hassan Highway' },
+
+  // --- KERALA PRIMARY CORRIDORS (VERIFIED) ---
+  'bengaluru_munnar': { km: 475, durationText: '~9 hr 30 mins', via: 'via Salem - Udumalpet Ghat' },
+  'bangalore_munnar': { km: 475, durationText: '~9 hr 30 mins', via: 'via Salem - Udumalpet Ghat' },
+  'bengaluru_kochi': { km: 535, durationText: '~9 hrs', via: 'via NH 44 & NH 544' },
+  'bangalore_kochi': { km: 535, durationText: '~9 hrs', via: 'via NH 44 & NH 544' },
+  'bengaluru_alleppey': { km: 580, durationText: '~10 hrs', via: 'via NH 544 & NH 66' },
+  'bangalore_alleppey': { km: 580, durationText: '~10 hrs', via: 'via NH 544 & NH 66' },
+  'bengaluru_wayanad': { km: 280, durationText: '~6 hrs', via: 'via Mysore / Gundlupet NH 766' },
+  'bangalore_wayanad': { km: 280, durationText: '~6 hrs', via: 'via Mysore / Gundlupet NH 766' },
+  'bengaluru_calicut': { km: 355, durationText: '~7 hr 30 mins', via: 'via Mysore & Thamarassery Ghat' },
+  'bengaluru_kozhikode': { km: 355, durationText: '~7 hr 30 mins', via: 'via Mysore & Thamarassery Ghat' },
+  'bengaluru_trivandrum': { km: 680, durationText: '~11 hr 30 mins', via: 'via NH 44 (Nagercoil / Tirunelveli)' },
+  'bangalore_trivandrum': { km: 680, durationText: '~11 hr 30 mins', via: 'via NH 44 (Nagercoil / Tirunelveli)' },
+
+  // --- ANDHRA PRADESH & TELANGANA CORRIDORS ---
+  'bengaluru_hyderabad': { km: 570, durationText: '~8 hrs', via: 'via NH 44 North Expressway' },
+  'bangalore_hyderabad': { km: 570, durationText: '~8 hrs', via: 'via NH 44 North Expressway' },
   'bengaluru_tirupati': { km: 250, durationText: '~5 hrs', via: 'via NH 71 / Kolar Highway' },
   'bangalore_tirupati': { km: 250, durationText: '~5 hrs', via: 'via NH 71 / Kolar Highway' },
+  'bengaluru_vijayawada': { km: 650, durationText: '~10 hrs', via: 'via NH 44 & NH 16' },
+  'bengaluru_kurnool': { km: 360, durationText: '~5 hr 30 mins', via: 'via NH 44' },
+  'bengaluru_anantapur': { km: 215, durationText: '~3 hr 30 mins', via: 'via NH 44' },
+
+  // --- GOA & MAHARASHTRA CORRIDORS ---
+  'bengaluru_goa': { km: 560, durationText: '~10 hrs', via: 'via Hubballi / Karwar / NH 48' },
+  'bangalore_goa': { km: 560, durationText: '~10 hrs', via: 'via Hubballi / Karwar / NH 48' },
+  'bengaluru_mumbai': { km: 985, durationText: '~15 hrs', via: 'via NH 48 (Pune - Mumbai Expressway)' },
+  'bangalore_mumbai': { km: 985, durationText: '~15 hrs', via: 'via NH 48 (Pune - Mumbai Expressway)' },
+  'bengaluru_pune': { km: 840, durationText: '~13 hrs', via: 'via NH 48' },
+  'bangalore_pune': { km: 840, durationText: '~13 hrs', via: 'via NH 48' },
+  'bengaluru_shirdi': { km: 1020, durationText: '~16 hrs', via: 'via Pune & Ahmednagar' },
+  'bangalore_shirdi': { km: 1020, durationText: '~16 hrs', via: 'via Pune & Ahmednagar' },
+
+  // --- OTHER MAJOR KARNATAKA OUTSTATIONS ---
+  'bengaluru_coorg': { km: 250, durationText: '~5 hr 30 mins', via: 'via Mysore Expressway & Kushalnagar' },
+  'bangalore_coorg': { km: 250, durationText: '~5 hr 30 mins', via: 'via Mysore Expressway & Kushalnagar' },
+  'bengaluru_chikmagalur': { km: 245, durationText: '~4 hr 45 mins', via: 'via NH 75 Hassan Highway' },
+  'bangalore_chikmagalur': { km: 245, durationText: '~4 hr 45 mins', via: 'via NH 75 Hassan Highway' },
   'bengaluru_hampi': { km: 340, durationText: '~6 hr 30 mins', via: 'via NH 48 / NH 50' },
   'bangalore_hampi': { km: 340, durationText: '~6 hr 30 mins', via: 'via NH 48 / NH 50' },
   'bengaluru_hassan': { km: 185, durationText: '~3 hr 30 mins', via: 'via NH 75' },
   'bengaluru_sakleshpur': { km: 220, durationText: '~4 hr 15 mins', via: 'via NH 75' },
   'bengaluru_mangalore': { km: 350, durationText: '~7 hrs', via: 'via Shiradi Ghat NH 75' },
-  'bengaluru_udupi': { km: 400, durationText: '~8 hrs', via: 'via NH 75' },
-  'bengaluru_wayanad': { km: 280, durationText: '~6 hrs', via: 'via Mysore / Gundlupet' },
-  'bengaluru_pondicherry': { km: 310, durationText: '~6 hr 30 mins', via: 'via Krishnagiri' },
-  'bengaluru_chennai': { km: 345, durationText: '~6 hr 30 mins', via: 'via NH 48' },
-  'bengaluru_goa': { km: 560, durationText: '~10 hrs', via: 'via Hubballi / Karwar' }
+  'bengaluru_udupi': { km: 400, durationText: '~8 hrs', via: 'via NH 75' }
 };
 
-const GENERIC_CITY_KEYS = new Set(['bangalore', 'bengaluru', 'karnataka', 'city']);
+const GENERIC_CITY_KEYS = new Set(['bangalore', 'bengaluru', 'karnataka', 'city', 'india', 'state']);
 
 export function extractLocationKey(text: string): string | null {
   const clean = String(text || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -273,8 +500,8 @@ export function calculateHaversineRoadKm(p1: { lat: number; lng: number }, p2: {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const airKm = R * c;
 
-  // Road factor based on distance class
-  const factor = airKm < 25 ? 1.38 : (airKm < 150 ? 1.24 : 1.26);
+  // Road factor based on distance class (higher tortuosity for inter-state & ghat roads)
+  const factor = airKm < 25 ? 1.38 : (airKm < 150 ? 1.25 : (airKm < 500 ? 1.30 : 1.33));
   return Math.round(airKm * factor);
 }
 
@@ -311,17 +538,18 @@ export function calculateRouteSync(pickup: string, destination: string, tripType
     if (c1 && c2) {
       const roadKm = Math.max(5, calculateHaversineRoadKm(c1, c2));
       const isOutstation = roadKm > 45 || normTripType === 'OUTSTATION' || normTripType === 'ROUND_TRIP';
-      const durSecs = isOutstation 
-        ? Math.round((roadKm / 55) * 3600) 
-        : Math.round((roadKm / 20) * 3600);
+      const avgSpeedKmh = isOutstation ? (roadKm > 300 ? 60 : 55) : 20;
+      const durSecs = Math.round((roadKm / avgSpeedKmh) * 3600);
       const durMins = Math.round(durSecs / 60);
       const durationText = durMins >= 60 
         ? `~${Math.floor(durMins / 60)} hr ${durMins % 60 ? (durMins % 60) + ' mins' : ''}`.trim()
         : `~${durMins} mins`;
       const routeVia = isOutstation 
-        ? (k1.includes('mysor') || k2.includes('mysor') 
-            ? 'via Bengaluru-Mysuru Expressway (NH 275)' 
-            : 'via National & State Highway Corridors')
+        ? (roadKm >= 500 
+            ? 'via National Highway Express Corridor (NH 44 / NH 48)' 
+            : (k1.includes('mysor') || k2.includes('mysor') 
+                ? 'via Bengaluru-Mysuru Expressway (NH 275)' 
+                : 'via National & State Highway Corridors'))
         : (roadKm >= 15 ? 'via Outer Ring Rd & City Corridors' : 'via City Arterial Roads');
 
       const minRange = Math.max(1, Math.round(roadKm * 0.94));
@@ -340,7 +568,7 @@ export function calculateRouteSync(pickup: string, destination: string, tripType
     }
   }
 
-  // 3. Fallbacks by trip type & keyword heuristics
+  // 3. Fallbacks by trip type & keyword heuristics (State-Aware)
   const pLower = String(pickup || '').toLowerCase();
   const dLower = String(destination || '').toLowerCase();
 
@@ -350,7 +578,26 @@ export function calculateRouteSync(pickup: string, destination: string, tripType
   let fallbackSecs = 3900;
   let isOutstation = false;
 
-  if (pLower.includes('mysor') || dLower.includes('mysor')) {
+  // Specific high-volume outstation destinations
+  if (pLower.includes('rameshwar') || dLower.includes('rameshwar') || pLower.includes('rameswar') || dLower.includes('rameswar') || pLower.includes('ramanathapuram') || dLower.includes('ramanathapuram')) {
+    fallbackKm = 600;
+    fallbackVia = 'via NH 44 (Salem - Madurai) & NH 87 (Pamban Bridge)';
+    fallbackDur = '~10 hr 45 mins';
+    fallbackSecs = 38700;
+    isOutstation = true;
+  } else if (pLower.includes('kanyakumari') || dLower.includes('kanyakumari')) {
+    fallbackKm = 665;
+    fallbackVia = 'via NH 44 South Corridor';
+    fallbackDur = '~11 hrs';
+    fallbackSecs = 39600;
+    isOutstation = true;
+  } else if (pLower.includes('madurai') || dLower.includes('madurai')) {
+    fallbackKm = 435;
+    fallbackVia = 'via NH 44 (Hosur - Salem - Dindigul)';
+    fallbackDur = '~7 hr 15 mins';
+    fallbackSecs = 26100;
+    isOutstation = true;
+  } else if (pLower.includes('mysor') || dLower.includes('mysor')) {
     fallbackKm = 145;
     fallbackVia = 'via Bengaluru-Mysuru Expressway (NH 275)';
     fallbackDur = '~2 hr 35 mins';
@@ -380,6 +627,68 @@ export function calculateRouteSync(pickup: string, destination: string, tripType
     fallbackDur = '~5 hrs';
     fallbackSecs = 18000;
     isOutstation = true;
+  } else if (pLower.includes('munnar') || dLower.includes('munnar')) {
+    fallbackKm = 475;
+    fallbackVia = 'via Salem & Udumalpet Ghat';
+    fallbackDur = '~9 hr 30 mins';
+    fallbackSecs = 34200;
+    isOutstation = true;
+  } else if (pLower.includes('kochi') || dLower.includes('kochi') || pLower.includes('cochin') || dLower.includes('cochin')) {
+    fallbackKm = 535;
+    fallbackVia = 'via NH 44 & NH 544';
+    fallbackDur = '~9 hrs';
+    fallbackSecs = 32400;
+    isOutstation = true;
+  } else if (pLower.includes('goa') || dLower.includes('goa')) {
+    fallbackKm = 560;
+    fallbackVia = 'via Hubballi / Karwar / NH 48';
+    fallbackDur = '~10 hrs';
+    fallbackSecs = 36000;
+    isOutstation = true;
+  } else if (pLower.includes('hyderabad') || dLower.includes('hyderabad')) {
+    fallbackKm = 570;
+    fallbackVia = 'via NH 44 North Expressway';
+    fallbackDur = '~8 hrs';
+    fallbackSecs = 28800;
+    isOutstation = true;
+  } else if (pLower.includes('mumbai') || dLower.includes('mumbai')) {
+    fallbackKm = 985;
+    fallbackVia = 'via NH 48 (Pune - Mumbai Expressway)';
+    fallbackDur = '~15 hrs';
+    fallbackSecs = 54000;
+    isOutstation = true;
+  } else if (pLower.includes('pune') || dLower.includes('pune')) {
+    fallbackKm = 840;
+    fallbackVia = 'via NH 48';
+    fallbackDur = '~13 hrs';
+    fallbackSecs = 46800;
+    isOutstation = true;
+  }
+  // State-Level Geographies (Prevents 145km fallback for out-of-Karnataka trips)
+  else if (pLower.includes('tamil nadu') || dLower.includes('tamil nadu') || pLower.includes('tamilnadu') || dLower.includes('tamilnadu') || pLower.includes(', tn') || dLower.includes(', tn')) {
+    fallbackKm = 450;
+    fallbackVia = 'via NH 44 / NH 48 Inter-State Highway Corridor';
+    fallbackDur = '~7 hr 30 mins';
+    fallbackSecs = 27000;
+    isOutstation = true;
+  } else if (pLower.includes('kerala') || dLower.includes('kerala') || pLower.includes(', kl') || dLower.includes(', kl')) {
+    fallbackKm = 480;
+    fallbackVia = 'via NH 544 / NH 766 Inter-State Highway Corridor';
+    fallbackDur = '~8 hrs';
+    fallbackSecs = 28800;
+    isOutstation = true;
+  } else if (pLower.includes('andhra') || dLower.includes('andhra') || pLower.includes('telangana') || dLower.includes('telangana') || pLower.includes(', ap') || dLower.includes(', ap')) {
+    fallbackKm = 420;
+    fallbackVia = 'via NH 44 / NH 16 Inter-State Highway Corridor';
+    fallbackDur = '~7 hrs';
+    fallbackSecs = 25200;
+    isOutstation = true;
+  } else if (pLower.includes('maharashtra') || dLower.includes('maharashtra') || pLower.includes(', mh') || dLower.includes(', mh')) {
+    fallbackKm = 820;
+    fallbackVia = 'via NH 48 North Highway Corridor';
+    fallbackDur = '~13 hrs';
+    fallbackSecs = 46800;
+    isOutstation = true;
   } else if (pLower.includes('airport') || dLower.includes('airport')) {
     fallbackKm = 38;
     fallbackVia = 'via Bellary Road / Airport Expressway';
@@ -393,10 +702,10 @@ export function calculateRouteSync(pickup: string, destination: string, tripType
     fallbackSecs = 28800;
     isOutstation = false;
   } else if (normTripType === 'OUTSTATION' || normTripType === 'ROUND_TRIP') {
-    fallbackKm = 145;
+    fallbackKm = 250;
     fallbackVia = 'via National & State Highway Corridors';
-    fallbackDur = '~2 hr 45 mins';
-    fallbackSecs = 9900;
+    fallbackDur = '~4 hr 30 mins';
+    fallbackSecs = 16200;
     isOutstation = true;
   }
 
@@ -412,61 +721,138 @@ export function calculateRouteSync(pickup: string, destination: string, tripType
   };
 }
 
+// Live geocoder for any place in India via Photon & Nominatim
+export async function geocodeLocationIndia(query: string): Promise<{ lat: number; lng: number; displayName: string } | null> {
+  const clean = String(query || '').trim();
+  if (!clean) return null;
+  const key = extractLocationKey(clean);
+  if (key && KNOWN_COORDINATES[key]) {
+    return { ...KNOWN_COORDINATES[key], displayName: key };
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1800);
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(clean + ' India')}&limit=1`;
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (res.ok) {
+      const data = await res.json();
+      const feature = data?.features?.[0];
+      if (feature?.geometry?.coordinates) {
+        const [lng, lat] = feature.geometry.coordinates;
+        return { lat, lng, displayName: feature.properties?.name || clean };
+      }
+    }
+  } catch {
+    // Fall back to Nominatim
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1800);
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(clean)}&countrycodes=in&format=json&limit=1`;
+    const res = await fetch(url, { signal: controller.signal, headers: { 'Accept-Language': 'en' } });
+    clearTimeout(timeout);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), displayName: data[0].display_name };
+      }
+    }
+  } catch {
+    // Network fallback
+  }
+
+  return null;
+}
+
 // Asynchronous route calculator with live OSRM routing and instant sync fallback
 export async function calculateRoute(pickup: string, destination: string, tripType: string): Promise<RouteInfo> {
   const syncResult = calculateRouteSync(pickup, destination, tripType);
   const k1 = extractLocationKey(pickup);
   const k2 = extractLocationKey(destination);
 
-  // If already found in verified highway table, no need for network call
+  // If already found in verified highway table, return immediately
   if (k1 && k2 && (VERIFIED_HIGHWAY_PAIRS[`${k1}_${k2}`] || VERIFIED_HIGHWAY_PAIRS[`${k2}_${k1}`])) {
     return syncResult;
   }
 
-  // Attempt live driving distance calculation via OSRM if coordinates exist
-  if (k1 && k2) {
-    const c1 = KNOWN_COORDINATES[k1];
-    const c2 = KNOWN_COORDINATES[k2];
-    if (c1 && c2) {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 1800);
-        const url = `https://router.project-osrm.org/route/v1/driving/${c1.lng},${c1.lat};${c2.lng},${c2.lat}?overview=false`;
-        const res = await fetch(url, { signal: controller.signal });
-        clearTimeout(timeout);
-        if (res.ok) {
-          const data = await res.json();
-          if (data?.routes?.[0]?.distance) {
-            const liveKm = Math.round((data.routes[0].distance / 1000) * 10) / 10;
-            const liveSec = Math.round(data.routes[0].duration);
-            const liveMins = Math.round(liveSec / 60);
-            const durationText = liveMins >= 60 
-              ? `~${Math.floor(liveMins / 60)} hr ${liveMins % 60 ? (liveMins % 60) + ' mins' : ''}`.trim()
-              : `~${liveMins} mins`;
-            return {
-              ...syncResult,
-              distanceKm: liveKm,
-              distanceRange: `${liveKm} km`,
-              durationSeconds: liveSec,
-              durationText,
-              isOutstation: liveKm > 45 || syncResult.isOutstation
-            };
-          }
-        }
-      } catch {
-        // Fall back cleanly to syncResult
-      }
+  // Attempt live driving distance calculation via OSRM if coordinates exist locally
+  let c1 = k1 ? KNOWN_COORDINATES[k1] : undefined;
+  let c2 = k2 ? KNOWN_COORDINATES[k2] : undefined;
+
+  // If either coordinate is missing from dictionary, geocode dynamically anywhere in India
+  if (!c1 || !c2) {
+    try {
+      const [g1, g2] = await Promise.all([
+        c1 ? Promise.resolve(c1) : geocodeLocationIndia(pickup),
+        c2 ? Promise.resolve(c2) : geocodeLocationIndia(destination)
+      ]);
+      if (g1) c1 = g1;
+      if (g2) c2 = g2;
+    } catch {
+      // Keep static
     }
+  }
+
+  if (c1 && c2) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 2000);
+      const url = `https://router.project-osrm.org/route/v1/driving/${c1.lng},${c1.lat};${c2.lng},${c2.lat}?overview=false`;
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.routes?.[0]?.distance) {
+          const liveKm = Math.round((data.routes[0].distance / 1000) * 10) / 10;
+          const liveSec = Math.round(data.routes[0].duration);
+          const liveMins = Math.round(liveSec / 60);
+          const durationText = liveMins >= 60 
+            ? `~${Math.floor(liveMins / 60)} hr ${liveMins % 60 ? (liveMins % 60) + ' mins' : ''}`.trim()
+            : `~${liveMins} mins`;
+          return {
+            ...syncResult,
+            distanceKm: liveKm,
+            distanceRange: `${liveKm} km`,
+            durationSeconds: liveSec,
+            durationText,
+            isOutstation: liveKm > 45 || syncResult.isOutstation,
+            routeVia: liveKm >= 300 ? 'via National Highway Express Corridor' : syncResult.routeVia
+          };
+        }
+      }
+    } catch {
+      // Fall back to Haversine with road factor
+    }
+
+    const roadKm = Math.max(5, calculateHaversineRoadKm(c1, c2));
+    const durSecs = Math.round((roadKm / 55) * 3600);
+    const durMins = Math.round(durSecs / 60);
+    const durationText = durMins >= 60 
+      ? `~${Math.floor(durMins / 60)} hr ${durMins % 60 ? (durMins % 60) + ' mins' : ''}`.trim()
+      : `~${durMins} mins`;
+    return {
+      ...syncResult,
+      distanceKm: roadKm,
+      distanceRange: `${roadKm} km`,
+      durationSeconds: durSecs,
+      durationText,
+      isOutstation: roadKm > 45 || syncResult.isOutstation,
+      routeVia: roadKm >= 300 ? 'via National Highway Express Corridor' : syncResult.routeVia
+    };
   }
 
   return syncResult;
 }
 
 function parseDurationToSeconds(text: string): number {
-  let seconds = 3600;
+  if (!text) return 3600;
+  let seconds = 0;
   const hrMatch = text.match(/(\d+)\s*hr/);
   const minMatch = text.match(/(\d+)\s*min/);
-  if (hrMatch) seconds = parseInt(hrMatch[1], 10) * 3600;
+  if (hrMatch) seconds += parseInt(hrMatch[1], 10) * 3600;
   if (minMatch) seconds += parseInt(minMatch[1], 10) * 60;
   return seconds;
 }
@@ -479,10 +865,40 @@ export function isAirportLocation(text: string): boolean {
     clean.includes('kempegowda') ||
     clean.includes('blr') ||
     clean.includes('kia') ||
+    clean.includes('bial') ||
     clean.includes('terminal 1') ||
     clean.includes('terminal 2') ||
-    clean.includes('devanahalli')
+    clean.includes('t1') ||
+    clean.includes('t2') ||
+    clean.includes('devanahalli airport')
   );
+}
+
+export function validateAirportTrip(pickup: string, destination: string): {
+  isValid: boolean;
+  error?: string;
+  hasPickupAirport: boolean;
+  hasDropAirport: boolean;
+  direction?: 'TO_AIRPORT' | 'FROM_AIRPORT';
+} {
+  const pAirport = isAirportLocation(pickup);
+  const dAirport = isAirportLocation(destination);
+
+  if (!pAirport && !dAirport) {
+    return {
+      isValid: false,
+      error: 'Airport Transfer requires Kempegowda International Airport (BLR) as pickup or drop location.',
+      hasPickupAirport: false,
+      hasDropAirport: false
+    };
+  }
+
+  return {
+    isValid: true,
+    hasPickupAirport: pAirport,
+    hasDropAirport: dAirport,
+    direction: dAirport ? 'TO_AIRPORT' : 'FROM_AIRPORT'
+  };
 }
 
 export function isOutstationDestination(dest: string, pickup: string = ''): boolean {
@@ -491,15 +907,31 @@ export function isOutstationDestination(dest: string, pickup: string = ''): bool
   if (isAirportLocation(clean)) return false;
 
   const outstationKeywords = [
-    'mysore', 'mysuru', 'coorg', 'madikeri', 'kushalnagar', 'ooty', 'coonoor',
-    'chikmagalur', 'chikkamagaluru', 'mullayanagiri', 'hassan', 'sakleshpur',
-    'belur', 'halebeedu', 'shravanabelagola', 'tirupati', 'hampi', 'hospet',
-    'hosapete', 'shivamogga', 'shimoga', 'jog falls', 'davanagere', 'chitradurga',
-    'tumakuru', 'tumkur', 'kolar', 'chikkaballapur', 'bandipur', 'kabini',
-    'mangaluru', 'mangalore', 'udupi', 'malpe', 'dharmasthala', 'subramanya',
-    'kukke', 'gokarna', 'murudeshwar', 'hubballi', 'hubli', 'belagavi', 'belgaum',
-    'wayanad', 'pondicherry', 'chennai', 'hyderabad', 'goa', 'mandya',
-    'srirangapatna', 'ramanagara', 'channapatna', 'nandi hills', 'kanakapura'
+    // Tamil Nadu
+    'rameshwaram', 'rameswaram', 'ramanathapuram', 'tamil nadu', 'tamilnadu', 'madurai', 'kanyakumari',
+    'chennai', 'salem', 'coimbatore', 'trichy', 'tiruchirappalli', 'tirunelveli', 'thanjavur', 'tanjore',
+    'kumbakonam', 'velankanni', 'kodaikanal', 'palani', 'tiruvannamalai', 'vellore', 'hosur', 'krishnagiri',
+    'dharmapuri', 'erode', 'tirupur', 'dindigul', 'namakkal', 'karur', 'yelagiri', 'courtallam', 'tenkasi',
+    'thoothukudi', 'tuticorin', 'ooty', 'coonoor', 'pondicherry', 'puducherry',
+    // Kerala
+    'kerala', 'munnar', 'kochi', 'cochin', 'ernakulam', 'alleppey', 'alappuzha', 'wayanad', 'sulthan bathery',
+    'kalpetta', 'kozhikode', 'calicut', 'thiruvananthapuram', 'trivandrum', 'thekkady', 'varkala', 'kovalam',
+    'thrissur', 'palakkad', 'kannur', 'kasaragod', 'guruvayur', 'sabarimala',
+    // Andhra & Telangana
+    'andhra', 'telangana', 'hyderabad', 'tirupati', 'tirumala', 'vijayawada', 'visakhapatnam', 'vizag',
+    'kurnool', 'anantapur', 'chittoor', 'kadapa', 'nellore', 'guntur', 'srisailam', 'lepakshi', 'puttaparthi',
+    // Goa & Maharashtra
+    'goa', 'panaji', 'calangute', 'baga', 'margao', 'mumbai', 'pune', 'shirdi', 'nashik', 'kolhapur',
+    'solapur', 'mahabaleshwar', 'lonavala', 'nagpur',
+    // Karnataka Outstation
+    'mysore', 'mysuru', 'coorg', 'madikeri', 'kushalnagar', 'chikmagalur', 'chikkamagaluru', 'mullayanagiri',
+    'hassan', 'sakleshpur', 'belur', 'halebeedu', 'shravanabelagola', 'hampi', 'hospet', 'shivamogga',
+    'shimoga', 'jog falls', 'davanagere', 'chitradurga', 'tumakuru', 'tumkur', 'kolar', 'chikkaballapur',
+    'bandipur', 'kabini', 'mangaluru', 'mangalore', 'udupi', 'malpe', 'dharmasthala', 'subramanya', 'kukke',
+    'gokarna', 'murudeshwar', 'hubballi', 'hubli', 'belagavi', 'belgaum', 'mandya', 'srirangapatna',
+    'badami', 'pattadakal', 'bijapur', 'vijayapura', 'bidar', 'kalaburagi', 'karwar', 'dandeli',
+    // Pan-India
+    'delhi', 'agra', 'jaipur', 'udaipur', 'varanasi', 'ayodhya', 'ahmedabad', 'surat', 'indore', 'kolkata'
   ];
 
   if (outstationKeywords.some(k => clean.includes(k))) return true;
@@ -514,3 +946,64 @@ export function isOutstationDestination(dest: string, pickup: string = ''): bool
   return false;
 }
 
+export interface BookingTripMetrics {
+  distanceKm: number;
+  distanceDisplay: string;
+  durationText: string;
+  routeVia: string;
+  perKmRateText: string;
+  isOutstation: boolean;
+}
+
+export function getBookingTripMetrics(ride: any): BookingTripMetrics {
+  if (!ride) {
+    return {
+      distanceKm: 0,
+      distanceDisplay: '0 km',
+      durationText: '--',
+      routeVia: 'Direct Route',
+      perKmRateText: '--',
+      isOutstation: false
+    };
+  }
+
+  let distKm = Number(ride.distance_km ?? ride.distanceKm ?? ride.billable_distance ?? 0);
+  let durText = String(ride.duration_text || ride.durationText || '').trim();
+  let routeVia = String(ride.route_via || ride.routeVia || '').trim();
+
+  const pickup = String(ride.pickup || '').trim();
+  const destination = String(ride.destination || '').trim();
+  const tripType = String(ride.trip_type || ride.tripType || 'POINT_TO_POINT').trim();
+
+  if ((!distKm || distKm <= 0) && pickup && destination) {
+    const route = calculateRouteSync(pickup, destination, tripType);
+    distKm = route.distanceKm;
+    if (!durText) durText = route.durationText;
+    if (!routeVia) routeVia = route.routeVia;
+  }
+
+  if (!distKm || distKm <= 0) {
+    if (isAirportLocation(destination) || isAirportLocation(pickup)) {
+      distKm = 48;
+      durText = durText || '~1 hr 15 mins';
+      routeVia = routeVia || 'Airport Expressway via Hebbal';
+    } else {
+      distKm = tripType === 'LOCAL' ? 80 : (tripType === 'OUTSTATION' || tripType === 'ROUND_TRIP' ? 145 : 18);
+      durText = durText || (tripType === 'LOCAL' ? '8 Hours' : '~45 mins');
+      routeVia = routeVia || 'City Arterial Corridor';
+    }
+  }
+
+  const isOutstation = distKm > 45 || tripType === 'OUTSTATION' || tripType === 'ROUND_TRIP';
+  const fare = Number(ride.quoted_amount ?? ride.quotedAmount ?? ride.fare ?? 0);
+  const perKmRate = distKm > 0 && fare > 0 ? Math.round(fare / distKm) : (isOutstation ? 12 : 14);
+
+  return {
+    distanceKm: distKm,
+    distanceDisplay: `${distKm} km`,
+    durationText: durText || (isOutstation ? '~3 hr 30 mins' : '~45 mins'),
+    routeVia: routeVia || (isOutstation ? 'via National & State Highway Corridors' : 'via City Arterial Roads'),
+    perKmRateText: `₹${perKmRate}/km`,
+    isOutstation
+  };
+}

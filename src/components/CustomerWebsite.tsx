@@ -79,6 +79,7 @@ export const CustomerWebsite: React.FC = () => {
 
   // Search Parameters
   const [tripType, setTripType] = useState<TripType>('OUTSTATION');
+  const [airportDirection, setAirportDirection] = useState<'DROP' | 'PICKUP'>('DROP');
   const [pickup, setPickup] = useState('');
   const [destination, setDestination] = useState('');
   const [journeyDate, setJourneyDate] = useState(() => toLocalDateInput(new Date()));
@@ -148,7 +149,7 @@ export const CustomerWebsite: React.FC = () => {
     'Jayanagar', 'Hebbal', 'Yelahanka', 'Banashankari', 'Majestic'
   ];
   const popularOutstationDestinations = [
-    'Mysore', 'Coorg', 'Ooty', 'Chikmagalur', 'Tirupati', 'Hampi', 'Wayanad', 'Mangalore'
+    'Rameshwaram', 'Mysore', 'Coorg', 'Ooty', 'Chikmagalur', 'Tirupati', 'Hampi', 'Wayanad', 'Mangalore'
   ];
   const popularAirportDestinations = [
     'Kempegowda Airport T1', 'Kempegowda Airport T2', 'Airport Departure Terminal'
@@ -481,6 +482,33 @@ export const CustomerWebsite: React.FC = () => {
           detectedDurationText: route.durationText
         });
         return;
+      }
+    } else if (tripType === 'AIRPORT') {
+      const hasAirport = isAirportLocation(trimmedPickup) || isAirportLocation(trimmedDest);
+      if (!hasAirport) {
+        if (isOutstationDestination(trimmedDest, trimmedPickup)) {
+          const route = calculateRouteSync(trimmedPickup, trimmedDest, 'OUTSTATION');
+          setSwitchPromptModal({
+            isOpen: true,
+            type: 'OUTSTATION',
+            targetTripType: 'OUTSTATION',
+            detectedLocation: trimmedDest,
+            detectedDistanceKm: route.distanceKm,
+            detectedDurationText: route.durationText
+          });
+          return;
+        } else {
+          const route = calculateRouteSync(trimmedPickup, trimmedDest, 'POINT_TO_POINT');
+          setSwitchPromptModal({
+            isOpen: true,
+            type: 'CITY',
+            targetTripType: 'POINT_TO_POINT',
+            detectedLocation: trimmedDest,
+            detectedDistanceKm: route.distanceKm,
+            detectedDurationText: route.durationText
+          });
+          return;
+        }
       }
     } else if (tripType === 'OUTSTATION' || tripType === 'ROUND_TRIP') {
       const route = calculateRouteSync(trimmedPickup, trimmedDest, tripType);
@@ -925,6 +953,15 @@ export const CustomerWebsite: React.FC = () => {
                   onClick={() => {
                     const nextType = t.id as TripType;
                     setTripType(nextType);
+                    if (nextType === 'AIRPORT') {
+                      if (!isAirportLocation(destination) && !isAirportLocation(pickup)) {
+                        const curPick = pickup.trim() || 'Uttarahalli, Bengaluru';
+                        setPickup(curPick);
+                        setDestination('Kempegowda International Airport (BLR T1 / T2)');
+                        fetchQuotes(nextType, curPick, 'Kempegowda International Airport (BLR T1 / T2)', passengers);
+                        return;
+                      }
+                    }
                     fetchQuotes(nextType);
                   }}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${tripType === t.id
@@ -936,6 +973,53 @@ export const CustomerWebsite: React.FC = () => {
                 </button>
               ))}
             </div>
+
+            {/* Airport Transfer Dedicated Direction Toggle */}
+            {tripType === 'AIRPORT' && (
+              <div className="mb-5 p-3.5 bg-blue-50/90 border border-blue-200 rounded-2xl flex flex-wrap items-center justify-between gap-3 animate-fade-in">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-ping"></span>
+                  <div>
+                    <span className="text-xs font-black text-blue-950 uppercase tracking-wider block">
+                      ✈️ Kempegowda Airport (BLR) Exclusive Corridor
+                    </span>
+                    <span className="text-[11px] text-blue-700 font-medium block">
+                      Airport Transfer is strictly for drops to or pickups from BLR Airport (T1 & T2).
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center bg-white p-1 rounded-xl border border-blue-200 text-xs font-bold shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAirportDirection('DROP');
+                      const curDest = 'Kempegowda International Airport (BLR T1 / T2)';
+                      const curPick = isAirportLocation(pickup) ? 'Uttarahalli, Bengaluru' : (pickup.trim() || 'Uttarahalli, Bengaluru');
+                      setPickup(curPick);
+                      setDestination(curDest);
+                      fetchQuotes('AIRPORT', curPick, curDest, passengers);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${airportDirection === 'DROP' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-blue-600'}`}
+                  >
+                    <span>🛫 Drop to Airport</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAirportDirection('PICKUP');
+                      const curPick = 'Kempegowda International Airport (BLR T1 / T2)';
+                      const curDest = isAirportLocation(destination) ? 'Uttarahalli, Bengaluru' : (destination.trim() || 'Uttarahalli, Bengaluru');
+                      setPickup(curPick);
+                      setDestination(curDest);
+                      fetchQuotes('AIRPORT', curPick, curDest, passengers);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${airportDirection === 'PICKUP' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-blue-600'}`}
+                  >
+                    <span>🛬 Pickup from Airport</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleSearchSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
@@ -1022,6 +1106,44 @@ export const CustomerWebsite: React.FC = () => {
                             });
                             return;
                           }
+                        } else if (tripType === 'AIRPORT') {
+                          const hasAirport = isAirportLocation(pickup.trim()) || isAirportLocation(val);
+                          if (!hasAirport) {
+                            if (isOutstationDestination(val, pickup.trim())) {
+                              const route = calculateRouteSync(pickup.trim(), val, 'OUTSTATION');
+                              setSwitchPromptModal({
+                                isOpen: true,
+                                type: 'OUTSTATION',
+                                targetTripType: 'OUTSTATION',
+                                detectedLocation: val,
+                                detectedDistanceKm: route.distanceKm,
+                                detectedDurationText: route.durationText
+                              });
+                              return;
+                            } else {
+                              const route = calculateRouteSync(pickup.trim(), val, 'POINT_TO_POINT');
+                              setSwitchPromptModal({
+                                isOpen: true,
+                                type: 'CITY',
+                                targetTripType: 'POINT_TO_POINT',
+                                detectedLocation: val,
+                                detectedDistanceKm: route.distanceKm,
+                                detectedDurationText: route.durationText
+                              });
+                              return;
+                            }
+                          }
+                        } else if ((tripType === 'OUTSTATION' || tripType === 'ROUND_TRIP') && isAirportLocation(val)) {
+                          const route = calculateRouteSync(pickup.trim(), val, 'AIRPORT');
+                          setSwitchPromptModal({
+                            isOpen: true,
+                            type: 'AIRPORT',
+                            targetTripType: 'AIRPORT',
+                            detectedLocation: val,
+                            detectedDistanceKm: route.distanceKm,
+                            detectedDurationText: route.durationText
+                          });
+                          return;
                         }
                         // Instant synchronous preview for instant UI response
                         const syncRoute = calculateRouteSync(pickup.trim(), val, tripType);
@@ -1162,7 +1284,18 @@ export const CustomerWebsite: React.FC = () => {
                     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
                     const dest = tripType === 'POINT_TO_POINT'
                       ? `${d}, Bengaluru`
-                      : (d.includes('Airport') || d.includes('Package') ? d : `${d}, Karnataka`);
+                      : tripType === 'AIRPORT'
+                        ? (d.includes('Airport') ? d : `${d}, Kempegowda Airport`)
+                        : (d.includes('Package') ? d : (
+                            d === 'Rameshwaram' ? 'Rameshwaram, Tamil Nadu' :
+                            d === 'Ooty' ? 'Ooty, Tamil Nadu' :
+                            d === 'Tirupati' ? 'Tirupati, Andhra Pradesh' :
+                            d === 'Wayanad' ? 'Wayanad, Kerala' :
+                            d === 'Goa' ? 'Goa' :
+                            d === 'Chennai' ? 'Chennai, Tamil Nadu' :
+                            d === 'Hyderabad' ? 'Hyderabad, Telangana' :
+                            `${d}, Karnataka`
+                          ));
                     setDestination(dest);
                     const currentPick = pickup.trim() || 'Uttarahalli, Bengaluru';
                     if (!pickup.trim()) setPickup(currentPick);

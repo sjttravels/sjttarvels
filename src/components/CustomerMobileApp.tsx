@@ -430,6 +430,33 @@ export const CustomerMobileApp: React.FC = () => {
         });
         return;
       }
+    } else if (activeTrip === 'AIRPORT') {
+      const hasAirport = isAirportLocation(trimmedPickup) || isAirportLocation(trimmedDest);
+      if (!hasAirport) {
+        if (isOutstationDestination(trimmedDest, trimmedPickup)) {
+          const route = calculateRouteSync(trimmedPickup, trimmedDest, 'OUTSTATION');
+          setSwitchPromptModal({
+            isOpen: true,
+            type: 'OUTSTATION',
+            targetTripType: 'OUTSTATION',
+            detectedLocation: trimmedDest,
+            detectedDistanceKm: route.distanceKm,
+            detectedDurationText: route.durationText
+          });
+          return;
+        } else {
+          const route = calculateRouteSync(trimmedPickup, trimmedDest, 'POINT_TO_POINT');
+          setSwitchPromptModal({
+            isOpen: true,
+            type: 'CITY',
+            targetTripType: 'POINT_TO_POINT',
+            detectedLocation: trimmedDest,
+            detectedDistanceKm: route.distanceKm,
+            detectedDurationText: route.durationText
+          });
+          return;
+        }
+      }
     }
 
     setQuotingFare(true);
@@ -2388,20 +2415,24 @@ export const CustomerMobileApp: React.FC = () => {
                     <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
                       switchPromptModal.type === 'OUTSTATION' 
                         ? 'bg-amber-100 text-amber-900 border border-amber-200' 
-                        : 'bg-blue-100 text-blue-900 border border-blue-200'
+                        : switchPromptModal.type === 'CITY'
+                          ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                          : 'bg-blue-100 text-blue-900 border border-blue-200'
                     }`}>
-                      {switchPromptModal.type === 'OUTSTATION' ? '🚗 Outstation Corridor' : '✈️ Airport Corridor'}
+                      {switchPromptModal.type === 'OUTSTATION' ? '🚗 Outstation Corridor' : switchPromptModal.type === 'CITY' ? '🚕 City Ride Corridor' : '✈️ Airport Corridor'}
                     </span>
                   </div>
 
                   <h3 className="text-base font-black text-slate-900">
-                    {switchPromptModal.type === 'OUTSTATION' ? 'Book SJT Outstation' : 'Book Airport Transfer'}
+                    {switchPromptModal.type === 'OUTSTATION' ? 'Book SJT Outstation' : switchPromptModal.type === 'CITY' ? 'Book City Ride' : 'Book Airport Transfer'}
                   </h3>
 
                   <p className="text-xs text-slate-600 mt-2 leading-relaxed font-medium">
                     {switchPromptModal.type === 'OUTSTATION'
                       ? 'Drop location is outside city limits. Continue booking Outstation instead?'
-                      : 'Drop location is Kempegowda International Airport. Continue booking dedicated Airport Transfer package instead?'}
+                      : switchPromptModal.type === 'CITY'
+                        ? 'Airport Transfer rate is strictly for Kempegowda Airport. Switch to City Ride for this intra-city route?'
+                        : 'Drop location is Kempegowda International Airport. Continue booking dedicated Airport Transfer package instead?'}
                   </p>
 
                   {switchPromptModal.detectedDistanceKm && (
@@ -2429,7 +2460,7 @@ export const CustomerMobileApp: React.FC = () => {
                       }}
                       className="w-full py-2.5 px-2 rounded-xl bg-[#0066FF] hover:bg-blue-700 text-white font-black text-xs shadow-md shadow-blue-500/25"
                     >
-                      {switchPromptModal.type === 'OUTSTATION' ? 'Change to Outstation' : 'Change to Airport'}
+                      {switchPromptModal.type === 'OUTSTATION' ? 'Change to Outstation' : switchPromptModal.type === 'CITY' ? 'Change to City Ride' : 'Change to Airport'}
                     </button>
                   </div>
                 </div>
