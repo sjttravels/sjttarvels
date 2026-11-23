@@ -712,6 +712,14 @@ export default async function handler(req, res) {
       const body = await parseBody(req);
       const startOdo = Number(body.start_odometer || body.startOdometer || 12450);
 
+      const checkQ = await db.query('SELECT * FROM bookings WHERE id::text = $1 OR booking_code = $1', [id]);
+      if (checkQ.rows.length === 0) return res.status(404).json({ error: 'Booking not found' });
+      const currentBooking = checkQ.rows[0];
+      const submittedOtp = body.otp || body.rideOtp || body.start_otp;
+      if (submittedOtp && currentBooking.start_otp && String(submittedOtp).trim() !== String(currentBooking.start_otp).trim()) {
+        return res.status(400).json({ error: 'Invalid passenger OTP. Please ask customer for the 4-digit PIN.' });
+      }
+
       const updateQ = `
         UPDATE bookings SET 
           status = 'IN_PROGRESS',
@@ -722,7 +730,6 @@ export default async function handler(req, res) {
         RETURNING *;
       `;
       const resDb = await db.query(updateQ, [startOdo, id]);
-      if (resDb.rows.length === 0) return res.status(404).json({ error: 'Booking not found' });
       return res.status(200).json({ success: true, booking: formatBooking(resDb.rows[0]) });
     }
 
@@ -970,37 +977,49 @@ export default async function handler(req, res) {
     // 21. Driver Onboard: POST /api/driver/onboard
     if (pathname === '/api/driver/onboard' && method === 'POST') {
       const body = await parseBody(req);
-      const driverId = body.driver_id || crypto.randomUUID();
+      const isValidUuid = (str) => Boolean(str && typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str));
+      const kycId = isValidUuid(body.id) ? body.id : crypto.randomUUID();
+      const driverId = isValidUuid(body.driver_id) ? body.driver_id : crypto.randomUUID();
       const driverName = body.driver_name || body.name || 'Registered Driver';
       const driverPhone = body.driver_phone || body.phone || '';
       const driverEmail = body.driver_email || body.email || (driverPhone ? `driver.${driverPhone.replace(/\D/g, '')}@sjttravels.com` : '');
       const vehicleReg = body.vehicle_reg || 'KA 05 AB 1234';
 
+      const aadharNumber = body.aadhaar_number || body.aadhar_number || body.aadhaar || '5421 8892 1045';
+      const vehiclePref = body.vehicle_preference || body.vehicle_type || 'Commercial Fleet';
+      const vehicleDetails = JSON.stringify(body.vehicle_details || { reg: vehicleReg, type: body.vehicle_type || 'Commercial Fleet' });
+      const documentsJson = JSON.stringify(body.documents || {});
+
       try {
         await db.query(`
           INSERT INTO driver_kyc (
             id, driver_id, driver_name, driver_phone, driver_email,
-            license_number, vehicle_reg, vehicle_type, kyc_status,
-            documents, submitted_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'PENDING', $9, NOW(), NOW())
+            license_number, aadhar_number, vehicle_preference, vehicle_reg, vehicle_type,
+            documents, vehicle_details, kyc_status, submitted_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'PENDING', NOW())
           ON CONFLICT (driver_id) DO UPDATE SET
             driver_name = EXCLUDED.driver_name,
             driver_phone = EXCLUDED.driver_phone,
             license_number = EXCLUDED.license_number,
+            aadhar_number = EXCLUDED.aadhar_number,
             vehicle_reg = EXCLUDED.vehicle_reg,
             documents = EXCLUDED.documents,
+            vehicle_details = EXCLUDED.vehicle_details,
             kyc_status = 'PENDING',
-            updated_at = NOW();
+            submitted_at = NOW();
         `, [
-          body.id || `kyc_${Date.now()}`,
+          kycId,
           driverId,
           driverName,
           driverPhone,
           driverEmail,
-          body.license_number || '',
+          body.license_number || 'KA05-2020-001234',
+          aadharNumber,
+          vehiclePref,
           vehicleReg,
           body.vehicle_type || 'Commercial Fleet',
-          JSON.stringify(body.documents || {})
+          documentsJson,
+          vehicleDetails
         ]);
       } catch (err) {
         console.warn('driver_kyc table insert warning:', err.message);
@@ -1009,7 +1028,7 @@ export default async function handler(req, res) {
         success: true,
         message: 'Driver induction dossier submitted successfully for admin review.',
         kyc: {
-          id: body.id || `kyc_${Date.now()}`,
+          id: kycId,
           driver_id: driverId,
           driver_name: driverName,
           kyc_status: 'PENDING'
@@ -1033,7 +1052,7 @@ export default async function handler(req, res) {
       const action = body.action || 'APPROVE';
       const status = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
       try {
-        await db.query('UPDATE driver_kyc SET kyc_status = $1, rejection_reason = $2, updated_at = NOW() WHERE id::text = $3 OR driver_id::text = $3', [
+        await db.query('UPDATE driver_kyc SET kyc_status = $1, rejection_reason = $2, verified_at = NOW() WHERE id::text = $3 OR driver_id::text = $3', [
           status,
           body.reason || null,
           kycId
