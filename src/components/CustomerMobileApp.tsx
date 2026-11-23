@@ -1226,7 +1226,7 @@ export const CustomerMobileApp: React.FC = () => {
 
                       {/* Contextual Quick Chips for Instant Selection */}
                       <div className="flex items-center gap-1.5 flex-wrap pt-2">
-                        {(tripType === 'POINT_TO_POINT'
+                        {(tripType === 'POINT_TO_POINT' || tripType === 'AIRPORT'
                           ? ['Indiranagar', 'Koramangala', 'Whitefield', 'Electronic City', 'Hebbal', 'Yelahanka']
                           : ['Mysuru', 'Coorg', 'Ooty', 'Chikmagalur', 'Tirupati', 'Hampi']
                         ).map(city => (
@@ -1234,16 +1234,17 @@ export const CustomerMobileApp: React.FC = () => {
                             key={city}
                             type="button"
                             onClick={() => {
-                              const dest = tripType === 'POINT_TO_POINT' ? `${city}, Bengaluru` : `${city}, Karnataka`;
+                              const dest = tripType === 'POINT_TO_POINT' || tripType === 'AIRPORT' ? `${city}, Bengaluru` : `${city}, Karnataka`;
                               setToCity(dest);
                               setFareQuotes({});
-                              const currentFrom = fromCity.trim() || 'Uttarahalli, Bengaluru';
-                              if (!fromCity.trim()) setFromCity(currentFrom);
-                              const syncRoute = calculateRouteSync(currentFrom, dest, tripType);
-                              setRouteDistanceKm(syncRoute.distanceKm);
-                              setRouteDistanceRange(syncRoute.distanceRange || null);
-                              setRouteDurationText(syncRoute.durationText || null);
-                              setRouteVia(syncRoute.routeVia || null);
+                              const currentFrom = fromCity.trim();
+                              if (currentFrom) {
+                                const syncRoute = calculateRouteSync(currentFrom, dest, tripType);
+                                setRouteDistanceKm(syncRoute.distanceKm);
+                                setRouteDistanceRange(syncRoute.distanceRange || null);
+                                setRouteDurationText(syncRoute.durationText || null);
+                                setRouteVia(syncRoute.routeVia || null);
+                              }
                             }}
                             className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold transition cursor-pointer"
                           >
