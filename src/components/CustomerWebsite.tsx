@@ -733,26 +733,26 @@ export const CustomerWebsite: React.FC = () => {
   const selectedBreakdown = selectedVehicle ? getVehicleFareBreakdown(selectedVehicle) : null;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 font-sans">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 font-sans w-full max-w-full overflow-x-hidden">
 
 
       {/* ======================================================== */}
       {/* 1. SINGLE CLEAN LUXURY HEADER (UNIFIED & UNCLUTTERED) */}
       {/* ======================================================== */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-sm transition-all">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-sm transition-all w-full max-w-full overflow-hidden">
         {/* Main Single-Line Navbar */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20 gap-2 sm:gap-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 sm:h-20 gap-2 sm:gap-4">
             {/* Brand Logo & Slogan */}
-            <a href="#booking-form" className="flex items-center gap-2.5 sm:gap-3 group shrink-0">
-              <div className="h-10 w-10 sm:h-11 sm:w-11 bg-white rounded-2xl shadow-md p-1 border border-slate-100 flex items-center justify-center transition-transform group-hover:scale-105 shrink-0">
+            <a href="#booking-form" className="flex items-center gap-2 sm:gap-3 group shrink-0">
+              <div className="h-9 w-9 sm:h-11 sm:w-11 bg-white rounded-2xl shadow-md p-1 border border-slate-100 flex items-center justify-center transition-transform group-hover:scale-105 shrink-0">
                 <img src="/sjt_logo.png" alt="SJT Logo" className="h-full w-full object-contain" />
               </div>
               <div>
-                <div className="text-lg sm:text-2xl font-black tracking-tight text-[#071B49] leading-none whitespace-nowrap">
+                <div className="text-base sm:text-2xl font-black tracking-tight text-[#071B49] leading-none whitespace-nowrap">
                   SJT <span className="text-[#ED1735]">CABS</span>
                 </div>
-                <span className="text-[9px] sm:text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block mt-0.5 whitespace-nowrap">
+                <span className="text-[8px] sm:text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block mt-0.5 whitespace-nowrap">
                   Karnataka Commercial Fleet
                 </span>
               </div>
@@ -808,7 +808,7 @@ export const CustomerWebsite: React.FC = () => {
               {/* Single Button Type Central Dispatch Hotline (Never Wraps) */}
               <a
                 href="tel:+919900975920"
-                className="inline-flex items-center gap-1.5 sm:gap-2 text-xs font-black text-slate-800 bg-slate-100 hover:bg-slate-200 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-slate-200 shadow-xs transition-all font-mono whitespace-nowrap shrink-0 cursor-pointer"
+                className="inline-flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-black text-slate-800 bg-slate-100 hover:bg-slate-200 px-2 sm:px-4 py-1.5 sm:py-2.5 rounded-xl border border-slate-200 shadow-xs transition-all font-mono whitespace-nowrap shrink-0 cursor-pointer"
                 title="Call 24x7 SJT Dispatch Hotline: +91 99009 75920"
               >
                 <PhoneCall className="w-3.5 h-3.5 text-[#ED1735] shrink-0" />
@@ -928,18 +928,18 @@ export const CustomerWebsite: React.FC = () => {
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
               <span>Bangalore's #1 Commercial Fleet Partner for Outstation, Local & Airport Rental</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
+            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
               Cabs, Innova Crysta, Tempo Traveller & Luxury Coach Rentals in Bangalore & Karnataka
             </h1>
-            <p className="mt-3 text-sm sm:text-base text-blue-100 max-w-2xl mx-auto leading-relaxed">
+            <p className="mt-3 text-xs sm:text-base text-blue-100 max-w-2xl mx-auto leading-relaxed">
               Transparent per-km commercial fares, sanitized yellow-board commercial fleet, and trusted verified chauffeurs for pilgrimages, corporate duty & family tours.
             </p>
           </div>
 
           {/* Interactive Search Card */}
-          <div id="booking-form" className="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl p-5 sm:p-7 text-slate-800 border border-slate-100">
-            {/* Trip Type Tabs */}
-            <div className="flex flex-wrap gap-2 pb-5 mb-5 border-b border-slate-100">
+          <div id="booking-form" className="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl p-4 sm:p-7 text-slate-800 border border-slate-100">
+            {/* Trip Type Tabs: Swipeable on mobile, wrapping on tablet/desktop */}
+            <div className="flex gap-2 overflow-x-auto pb-3 mb-4 sm:pb-5 sm:mb-5 border-b border-slate-100 scrollbar-none sm:flex-wrap">
               {[
                 { id: 'POINT_TO_POINT', label: 'City Ride' },
                 { id: 'LOCAL', label: 'Local (8hr/80km)' },
@@ -971,7 +971,7 @@ export const CustomerWebsite: React.FC = () => {
                     }
                     fetchQuotes(nextType);
                   }}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${tripType === t.id
+                  className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${tripType === t.id
                     ? 'bg-[#ED1735] text-white shadow-md shadow-red-500/30'
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                     }`}

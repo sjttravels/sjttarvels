@@ -221,7 +221,7 @@ export const LocationSuggestionField: React.FC<LocationSuggestionFieldProps> = (
         }}
         placeholder={placeholder}
         required={required}
-        className="w-full h-11 rounded-xl border border-slate-200 pl-9 pr-9 text-xs font-semibold text-slate-800 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100 placeholder:text-slate-400 bg-white shadow-xs"
+        className="w-full h-11 rounded-xl border border-slate-200 pl-9 pr-9 text-[15px] sm:text-xs font-semibold text-slate-800 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100 placeholder:text-slate-400 bg-white shadow-xs"
       />
 
       {/* Optional Live GPS Icon Button directly inside input */}
